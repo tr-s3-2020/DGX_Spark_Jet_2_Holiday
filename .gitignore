@@ -1,0 +1,6 @@
+# 只同步 skill 开发内容（elderly-companion/）。
+# Qwen3.6 部署产物（模型权重、venv、缓存、日志、脚本、文档）一律不推远端。
+/*
+!/README.md
+!/.gitignore
+!/elderly-companion/
