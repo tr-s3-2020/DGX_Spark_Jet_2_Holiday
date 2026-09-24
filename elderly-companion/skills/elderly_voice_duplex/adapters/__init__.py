@@ -23,7 +23,10 @@ def make_asr():
     if _cfg.ASR_BACKEND == "text":
         from .text import ScriptedASR
         return ScriptedASR()
-    if _cfg.ASR_BACKEND == "nemo":
+    if _cfg.ASR_BACKEND in ("nemo", "funasr"):
+        if _cfg.ASR_BACKEND == "funasr":
+            from .funasr_asr import ParaformerASR
+            return ParaformerASR()
         from .nemo_asr import NemoStreamingASR
         return NemoStreamingASR()
     raise ValueError(f"未知 ASR 后端: {_cfg.ASR_BACKEND}")

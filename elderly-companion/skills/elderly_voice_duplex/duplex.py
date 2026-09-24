@@ -135,6 +135,10 @@ class VoiceDuplex:
     # ------------------------------------------------------------ 收轮判定
 
     async def _close_turn(self) -> TurnResult:
+        # 离线 ASR（Paraformer）在 accept() 阶段只缓冲、给不出部分结果，
+        # 所以这里补一次 final()。流式 ASR 已经在 _partial 里有累积文本。
+        if not self._partial:
+            self._partial = await self.asr.final()
         result = TurnResult(state=self.state, transcript=self._partial)
         judgement = self.scorer.judge(self._partial)
         result.events.append(f"judge={judgement.signal.value}({judgement.reason})")

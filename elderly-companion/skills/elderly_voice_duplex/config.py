@@ -60,7 +60,7 @@ FILLER_MAX_TOKENS = _i("EVD_FILLER_MAX_TOKENS", 48)
 FILLER_TEMPERATURE = _f("EVD_FILLER_TEMPERATURE", 0.9)
 
 # ---------------------------------------------------------------- ASR / TTS
-ASR_BACKEND = os.environ.get("EVD_ASR", "text")     # text | nemo
+ASR_BACKEND = os.environ.get("EVD_ASR", "funasr")  # text | funasr | nemo
 TTS_BACKEND = os.environ.get("EVD_TTS", "text")     # text | nemo
 VAD_BACKEND = os.environ.get("EVD_VAD", "text")     # text | silero
 
