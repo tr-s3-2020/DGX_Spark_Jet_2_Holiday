@@ -61,6 +61,26 @@ CPATH="$HDR:$HDR/python3.10" pip install 'nemo-toolkit[asr,tts]'
 汉字选错——说明中文语言建模数据不足，不是配置问题（显式指定语言、加 prompt
 都无效，已试）。
 
+### 英文对照实验：问题精确定位在中文
+
+用同样的合成语音、同样的加载和解码管线测英文（4 句，内容对应）：
+
+| 参考 | 识别 | WER |
+|---|---|---|
+| This morning my legs felt heavy, and I had to stop and rest every few steps when I went out to buy groceries. | 完全相同 | **0.0%** |
+| Can I take two of my blood pressure pills today? | 完全相同 | **0.0%** |
+| My son called yesterday and said he is coming to visit me this weekend. | 完全相同 | **0.0%** |
+| The sun is lovely outside, so I took a walk around the block. | 完全相同 | **0.0%** |
+
+**平均 WER 0.0%**。
+
+结论：音频加载、重采样、模型推理、解码全链路**完全正常**，模型本身对英文是
+SOTA 级表现。短板精确地只在**中文语言建模**，与集成方式无关。所以换 ASR 后端
+或微调中文是正解，不需要去排查管线。
+
+（顺带发现：模型会在末尾附加语言标签 `<en-US>` / `<zh-CN>`，适配器里已剥掉——
+不剥会污染对话历史、安全围栏匹配和家属日报。）
+
 ### 为什么这是安全问题
 
 `降压药` → `酱鸭药` 意味着 `prompts.py` 里的医疗围栏**会漏**：正则匹配的是

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 
 from .. import config
 from .base import ASRBackend
@@ -67,6 +68,9 @@ class NemoStreamingASR(ASRBackend):
             out = self._model.transcribe([audio], verbose=False)
         text = out[0] if hasattr(out, "__getitem") else str(out)
         text = getattr(text, "text", text) or ""
+        # 模型会在末尾附加语言标签，如 "<zh-CN>" / "<en-US>"，必须剥掉，
+        # 否则会污染对话历史、安全围栏匹配和家属日报
+        text = re.sub(r"\s*<[a-z]{2}-[A-Z]{2}>\s*$", "", text).strip()
         new = text[len(self._prev):] if text.startswith(self._prev) else text
         self._prev = text
         self._text = text
