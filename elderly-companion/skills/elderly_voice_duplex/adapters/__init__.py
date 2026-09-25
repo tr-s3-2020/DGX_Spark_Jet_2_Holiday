@@ -37,6 +37,9 @@ def make_tts():
         from .text import RecordingTTS
         return RecordingTTS()
     if _cfg.TTS_BACKEND == "nemo":
-        from .nemo_tts import NemoTTS
-        return NemoTTS()
+        from .nemo_tts import MagpieTTS
+        return MagpieTTS()
+    if _cfg.TTS_BACKEND == "edge":
+        from .edge_tts_tts import EdgeTTS
+        return EdgeTTS()
     raise ValueError(f"未知 TTS 后端: {_cfg.TTS_BACKEND}")

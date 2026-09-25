@@ -61,7 +61,7 @@ FILLER_TEMPERATURE = _f("EVD_FILLER_TEMPERATURE", 0.9)
 
 # ---------------------------------------------------------------- ASR / TTS
 ASR_BACKEND = os.environ.get("EVD_ASR", "funasr")  # text | funasr | nemo
-TTS_BACKEND = os.environ.get("EVD_TTS", "text")     # text | nemo
+TTS_BACKEND = os.environ.get("EVD_TTS", "edge")     # text | edge | nemo
 VAD_BACKEND = os.environ.get("EVD_VAD", "text")     # text | silero
 
 NEMO_ASR_MODEL = os.environ.get(
