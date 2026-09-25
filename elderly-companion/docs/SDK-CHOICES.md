@@ -153,3 +153,46 @@ SOTA 级表现。短板精确地只在**中文语言建模**，与集成方式�
   （2.37 GB）而不是 `model.safetensors`，会额外下载。
 - **MagpieTTS 音色克隆被移除**：v2607 起 zero-shot 克隆因安全原因下架，
   spec 里"亲切晚辈音色"只能用内置音色。
+
+---
+
+## TTS 实测：MagpieTTS v2607 中文不可用（当前状态）
+
+已接通 `nvidia/magpie_tts_multilingual_357m`（NeMo `MagpieTTSModel`，
+加载 37s，22050Hz，5 个内置音色，合成 1.3~1.5s/句）。**但语音环回测试
+（TTS 合成 → Paraformer 回读）暴露三个系统性缺陷**：
+
+| 缺陷 | 实例 | 对产品的后果 |
+|---|---|---|
+| 多音字错 | 降压药 → 将鸭药/江鸭药/家鸭药/临江鸭药（5 音色全错） | 医疗围栏关键词失配 |
+| **敬语读错** | 您 → 你（"您慢慢想"→"你慢慢想"） | 对老人说话变成对平辈/晚辈，不可接受 |
+| 短句崩坏 | "嗯。"→"然后。"；"外面暖和吧？"→"外面暖和包宝宝宝宝宝咖ass所" | 垫音恰恰是最短的句子 |
+
+长句（≥16 字）反而完全正常（"今天天气真好，您下楼走走挺好的。" ✅）。
+
+这些都是模型中文文本归一化/发音的问题，与集成无关（换音色无效，已试 5 个）。
+
+### 意外收获：edge-tts 的中文质量反而好
+
+前面 ASR 测试用的合成音全部来自 edge-tts，Paraformer 在它上面拿到
+**1.3% CER，且"降压药"识别正确**。也就是说 edge-tts 的中文发音是清楚的。
+所以现阶段 TTS 建议：
+
+1. **edge-tts**（已装、已通、中文好）——文本出网，老人语音本身不出网。
+   延迟和音色可选性是优势。适合先把产品跑起来。
+2. **CosyVoice**（本地）——要全本地时再上，安装比重。
+3. **Riva**——有容器环境后的正解。
+
+### 接 TTS 时踩过的坑（省下一个人的时间）
+
+1. `MagpieTTSModel.tokenizer` 是 `AggregatedTTSTokenizer`，**不可调用**，
+   必须 `tokenizer.encode(text, "mandarin_phoneme")` 显式指定语言
+   （内置 15 套音素/字符 tokenizer）
+2. 多音色通过 `batch["speaker_indices"]` 选，配
+   `create_baked_context_embeddings_batch`；v2607 起只有 5 个内置音色，
+   zero-shot 克隆被 NVIDIA 下架
+3. 加载时会从一个**硬编码 URL** 拉 speaker encoder 权重
+   （`audio_codec.py` 里 `use_scl_loss` 分支，推理用不到），本机代理慢。
+   适配器里已把 `load_fsspec` 重定向到 `.cache/voice-probe/tts/` 下的本地副本
+4. codes→音频是 `model._codec_helper.codes_to_audio(codes, lens)`
+   （私有方法，但没公开替代）
