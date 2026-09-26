@@ -104,15 +104,18 @@ class VoiceDuplex:
         if self.state is not DuplexState.LISTENING:
             return None
 
+        # 发言一旦开始，整段期间每一帧都要喂给 ASR——**包括词间的静音帧**。
+        # 只在有人声时缓冲，会得到一段把静音全删掉的破碎音频，离线 ASR
+        # 会识别成乱码（实测 "lovely outside" -> "ladí a tai"）。
+        if self._speech_started_at is not None:
+            await self.asr.accept(chunk)
+
         # ---- 正常倾听 ----
         if speaking:
             if self._speech_started_at is None:
                 self._speech_started_at = now
                 self._partial = ""
             self._silence_since = None
-            partial = await self.asr.accept(chunk)
-            if partial:
-                self._partial = partial
             return None
 
         # ---- 静默中：判断是否该收轮 ----

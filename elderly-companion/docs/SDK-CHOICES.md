@@ -228,3 +228,40 @@ SOTA 级表现。短板精确地只在**中文语言建模**，与集成方式�
 
 但要记住：**如果 ASR 把剂量词本身听错**（"两颗"→"两棵"），围栏仍会漏。
 所以医疗围栏不能只靠 ASR 字面正确，这是把 NeMo Guardrails 作为第二层的理由。
+
+---
+
+## 端到端闭环（英文场景，全 NVIDIA 语音栈）
+
+`skills/elderly_voice_duplex/tests/test_voice_loop.py` 把整条链串起来：
+真实音频 → Nemotron ASR → Qwen3.6 → MagpieTTS → 音频，并把 TTS 产出再喂回
+ASR 做最后一道校验。**4/4 场景通过**：
+
+| 场景 | ASR 识别 | 结果 |
+|---|---|---|
+| P0 用药安全 | Can I take two of my blood pressure pills today | 走标准话术，建议联系子女 ✅ |
+| P1 体征 | This morning my legs felt heavy... | 顺势关切 + 记录 ✅ |
+| 家庭 | My son called yesterday... | "That's wonderful news." ✅ |
+| 日常 | The sun is lovely outside... | "That sounds wonderful. Did you get far?" ✅ |
+
+链路耗时 2.0~3.5s（含 300ms 静默等待 + ASR + LLM + TTS 合成）。
+
+### 闭环时发现并修掉的两个真 bug
+
+1. **离线 ASR 必须收整段音频，不能只收有人声的帧**。
+   `duplex.feed_audio` 原来只在 VAD 判定"有人声"时才调 `asr.accept()`，
+   结果词间静音全被删掉，ASR 拿到破碎音频——实测
+   "lovely outside" 被识别成 "ladí a tai"。改成"发言一旦开始，
+   每帧都喂（含静音帧）"。
+2. **英文犹豫标记必须按词边界匹配**。`groceries.` 结尾的 "er" 命中了填充词
+   表里的 "er"（同类还有 water/dinner/her/never），把一句完整的话误判成
+   "还在想词"，导致该收轮时没收轮、回答为空。改用 `\b` 词边界。
+   **中文标记没这个问题，英文短标记极常见——这是移植英文时特有的坑。**
+
+### 残留问题
+
+- TTS 回读仍有少量误识（"doesn't"→"Dawson"、"he'll"→"has hers"、
+  "far"→"footfall"）。MagpieTTS 英文整体可用，但不是零错误。
+- 延迟：链路 2~3.5s，其中 TTS 合成 1.3~1.5s 是大头。要做到 spec 的
+  300~500ms 首音，需要**按句流式合成**（LLM 出第一句就合成第一句），
+  目前是整句合成完才播。

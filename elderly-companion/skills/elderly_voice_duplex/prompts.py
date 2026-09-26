@@ -79,13 +79,24 @@ class HesitationScorer:
         self._streak = 0
 
     def _marker_hit(self, text: str) -> str | None:
-        """返回命中的填充词（取最靠后的那个，最接近当下状态）。"""
-        tail = text[-12:]
+        """返回命中的填充词（取最靠后的那个，最接近当下状态）。
+
+        必须按**词边界**匹配，不能裸子串：英文里 "er" 会命中 groceries/water/
+        dinner/her/never 这类极常见的 -er 结尾词，实测就这样把一句完整的话
+        误判成"还在想词"，导致该收轮时没收轮、回答为空。
+        """
+        tail = text[-24:]
         hit = None
         for m in self.markers:
-            idx = tail.rfind(m)
-            if idx != -1 and (hit is None or idx > hit[1]):
-                hit = (m, idx)
+            # \b 对中文无效，但中文标记本身不会出现这种子串问题；
+            # 英文短标记（um/uh/er/ah…）必须靠词边界才安全
+            pattern = (r"\b" + re.escape(m) + r"\b"
+                       if re.match(r"^[A-Za-z]", m) else re.escape(m))
+            match = None
+            for match in re.finditer(pattern, tail, re.IGNORECASE):
+                pass
+            if match is not None and (hit is None or match.start() > hit[1]):
+                hit = (m, match.start())
         return hit[0] if hit else None
 
     def judge(self, partial: str) -> TurnJudgement:
