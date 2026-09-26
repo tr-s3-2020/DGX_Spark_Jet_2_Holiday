@@ -1,0 +1,82 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "user_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "User Id",
+      "type": "string"
+    },
+    "cursor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cursor"
+    },
+    "limit": {
+      "default": 20,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "enum": [
+            "session_extract",
+            "story_reconcile",
+            "preference_reconcile",
+            "context_prepare",
+            "chronicle_build",
+            "language_variant"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Kind"
+    },
+    "state": {
+      "anyOf": [
+        {
+          "enum": [
+            "queued",
+            "running",
+            "completed",
+            "skipped",
+            "failed",
+            "cancelled"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "State"
+    }
+  },
+  "required": [
+    "request_id",
+    "user_id"
+  ],
+  "title": "ListJobs",
+  "type": "object"
+}

@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "Conditions": {
+      "additionalProperties": false,
+      "properties": {
+        "noise": {
+          "default": "unknown",
+          "enum": [
+            "quiet",
+            "noisy",
+            "unknown"
+          ],
+          "title": "Noise",
+          "type": "string"
+        },
+        "communication_mode": {
+          "default": "text",
+          "enum": [
+            "voice",
+            "text"
+          ],
+          "title": "Communication Mode",
+          "type": "string"
+        }
+      },
+      "title": "Conditions",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "user_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "User Id",
+      "type": "string"
+    },
+    "session_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "locale": {
+      "maxLength": 64,
+      "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+      "title": "Locale",
+      "type": "string"
+    },
+    "reply_locale": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reply Locale"
+    },
+    "conditions": {
+      "$ref": "#/$defs/Conditions"
+    }
+  },
+  "required": [
+    "request_id",
+    "user_id",
+    "session_id",
+    "locale"
+  ],
+  "title": "OpenSession",
+  "type": "object"
+}

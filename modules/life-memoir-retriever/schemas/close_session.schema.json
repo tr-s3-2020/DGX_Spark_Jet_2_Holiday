@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "session_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "expected_session_version": {
+      "minimum": 1,
+      "title": "Expected Session Version",
+      "type": "integer"
+    },
+    "reason": {
+      "enum": [
+        "completed",
+        "user_stopped",
+        "disconnected"
+      ],
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "session_id",
+    "expected_session_version",
+    "reason"
+  ],
+  "title": "CloseSession",
+  "type": "object"
+}

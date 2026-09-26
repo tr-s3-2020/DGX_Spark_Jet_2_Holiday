@@ -1,0 +1,70 @@
+Use case: infographic-diagram.
+Asset type: a polished Chinese architecture infographic at the top of a GitHub README, for an elder companionship and oral-history Skill project. Create ONE finished, high-resolution landscape image, approximately 2400×1600, ratio 3:2. It must be readable, attractive and factually faithful, not a generic AI circuit poster. This is an explanatory overview for users and collaborators, not a screenshot of an app.
+
+Art direction: elegant editorial information design, warm ivory background, deep ink typography, calm teal for real-time conversation, muted violet for background analysis, amber for the personal chronicle. Crisp readable simplified Chinese sans-serif labels with strong hierarchy. Fine rounded cards, clean alignment, generous whitespace, discreet soft shadows, restrained luminous connecting lines, tiny tasteful illustrative line icons. A subtle dimensional open-book / personal timeline illustration can occupy the chronicle card, without reducing label legibility. No brand logos, no mascots, no medical symbols, no photographs. Use human warmth and technical clarity. Text must be written exactly as below with no pseudo-Chinese.
+
+Overall information hierarchy: large title and short subtitle at top. A large horizontal real-time lane at top; a compact support band for six contextual methods immediately below; a lower background lane with three parallel branches, a published-memory store and a prominent personal-chronicle output. Explicitly distinguish the direct conversation path from background work. Use arrows with clear direction and tidy routing. Do not draw any path which forces the real-time reply to wait for a background task.
+
+Exact text:
+Main title: “让每一次倾听，成为下一次理解”
+Subtitle: “长者陪伴 Skill · 从自然对话到个人年谱”
+Small corner badge: “模块 3 · 设计草案 v0.5”
+
+REAL-TIME lane heading: “实时对话｜先回应，不等分析”
+Four cards left to right, connected by solid teal rightward arrows:
+1. “老人自在讲述”
+   small body: “语音、故事与当下需要”
+2. “语音与主控”
+   small body: “转写 · 当前意愿 · 健康分流”
+3. “主 Skill 取用记忆”
+   small body: “读取已准备好的上下文”
+4. “温和、及时地回应”
+   small body: “主控生成 · 语音流式播报”
+Include a small unobtrusive note inside this lane: “当前要求立即生效”
+
+Support band title: “情境子能力｜按需要组合，随时调整”
+Six equal compact chips with these exact names:
+“自然讲述”  “担忧支持”  “低落支持”  “记忆与理解”  “敏感经历”  “听觉与疲劳”
+Small footnote in this band: “适应当下需要，不给老人贴诊断标签”
+The band visually supports the main Skill / response, and must not look like six separate serial API calls.
+
+BACKGROUND lane heading: “后台并行｜提前整理，逐步理解”
+At the left, a small entry label: “获准保存的记录”
+Under it: “会后提取 / 历史变化”
+A connector fans out to three independent violet task cards arranged vertically or side by side:
+A. “经历与时间推理”
+   body: “人物、事件、年龄与相对时间”
+B. “交流偏好分析”
+   body: “明确反馈、适用条件与反例”
+C. “检索准备”
+   body: “索引、快照与可选语言变体”
+Their connections reconverge through a small gate labelled “校验来源、许可与版本”, then a memory card labelled “发布可用记忆”.
+Inside the memory card show two clear divisions:
+“短期：当前话题与近期事项”
+“长期：个人经历与交流偏好”
+Draw ONE elegant dashed return arrow from the published-memory card upward into the main Skill card in the real-time lane, labelled “后续轮次读取新结果”.
+A small note on the background lane: “独立任务可并行，语音响应优先”
+Show a thin downward feed from the real-time lane into the background entry, labelled “会后获准提取”; also communicate that existing historical changes may feed it independently via its existing “历史变化” text. This is NOT a per-turn mandatory analysis call.
+
+To the lower right, the prominent amber chronicle card, reached by an arrow FROM PUBLISHED MEMORY, labelled on the arrow “基于已发布事件”.
+Heading: “逐步形成个人年谱”
+Subhead: “时间线 + 生活细节 + AI 整理”
+Show three tiny editorial timeline rows, clearly fictional examples and subordinate to main chart:
+“1970—1971 年间｜进厂”
+“1973—1974 年间｜调入车间”
+“年份未详｜师傅赠予旧扳手”
+small caption: “示例为虚构推算”
+At the bottom of this card: “保留依据与不确定性 · 本人可复核”
+Do not suggest that every event has an exact date or that the AI summary is the elder's verbatim quotation.
+
+Bottom page footer, legible but secondary: “自然讲述，不逐年盘问  ·  记忆可更正、可删除  ·  分享另需许可”
+All major cards and title readable at a GitHub README width of about 900px. Prioritize a beautiful clear diagram over decoration. Avoid duplicate labels, confusing crossing arrows, giant gradients, microscopic paragraphs, and unsupported speed promises. Do not add any text beyond these labels.
+
+Generation method: built-in image_gen, one initial generation followed by one readability edit. Final selected asset: life-memoir-workflow-v0.5.png. Generated 2026-09-26. Final artifact is a design overview, not evidence of a running system. Source content: ../DESIGN.md, ../SCENARIO-SUBSKILLS.md, ../CHRONICLE-DESIGN.md.
+
+Final edit prompt:
+Use case: infographic-diagram / text-and-background refinement.
+Edit the provided Chinese workflow infographic. Preserve its exact aspect ratio, overall layout, card positions, workflow connections, all main Chinese labels, teal/violet/amber palette, and the open-book chronicle illustration.
+
+Make ONE focused readability correction throughout: replace the dark smoky vignette behind the top title and the bottom footer with a bright, clean, warm ivory background. There must be absolutely no dark gradient or shadow across the title. Render the main title “让每一次倾听，成为下一次理解” in solid crisp deep ink, with very strong contrast against light ivory. Render subtitle “长者陪伴 Skill · 从自然对话到个人年谱” clearly on the same bright background. Bottom footer must be clearly readable in dark ink on light ivory: “自然讲述，不逐年盘问 · 记忆可更正、可删除 · 分享另需许可”.
+Keep shadows limited to tiny subtle card shadows; no full-canvas vignette, haze, dark overlays, dramatic lighting or blur. Remove the small decorative handwritten phrases in the upper left and upper right; they distract from the diagram and are not needed. The small top-right badge “模块 3 · 设计草案 v0.5” stays. The other approved visual content and arrows stay unchanged. Keep all simplified Chinese typography sharp. This will be displayed in a GitHub README and must be instantly legible. Output the complete corrected infographic.

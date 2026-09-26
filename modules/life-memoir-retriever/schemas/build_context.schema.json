@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "query": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Query",
+      "type": "string"
+    },
+    "limit": {
+      "default": 8,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Limit",
+      "type": "integer"
+    },
+    "max_chars": {
+      "default": 3000,
+      "maximum": 3000,
+      "minimum": 200,
+      "title": "Max Chars",
+      "type": "integer"
+    },
+    "context_locale": {
+      "default": "original",
+      "maxLength": 64,
+      "title": "Context Locale",
+      "type": "string"
+    },
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "session_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "purpose": {
+      "enum": [
+        "conversation",
+        "family_digest"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "deadline_ms": {
+      "default": 100,
+      "maximum": 100,
+      "minimum": 10,
+      "title": "Deadline Ms",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_id",
+    "session_id",
+    "purpose"
+  ],
+  "title": "BuildContext",
+  "type": "object"
+}

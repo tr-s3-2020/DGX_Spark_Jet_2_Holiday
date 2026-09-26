@@ -1,0 +1,23 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "job_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "job_id"
+  ],
+  "title": "GetJob",
+  "type": "object"
+}

@@ -1,0 +1,12 @@
+{
+  "storage_path": ".data/memory.sqlite3",
+  "backend": "chat_completions",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "model": "REPLACE_WITH_DEPLOYED_MODEL_ID",
+  "location": "local",
+  "api_key_env": null,
+  "timeout_seconds": 20,
+  "max_attempts": 2,
+  "total_budget_seconds": 45,
+  "max_concurrency": 1
+}

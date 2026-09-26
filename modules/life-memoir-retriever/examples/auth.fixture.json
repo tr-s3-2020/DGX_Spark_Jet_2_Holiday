@@ -1,0 +1,17 @@
+[
+  {
+    "token_env": "MEMORY_API_TOKEN",
+    "caller_id": "integration-host",
+    "user_ids": [
+      "fixture-elder"
+    ],
+    "roles": [
+      "host",
+      "maintenance"
+    ],
+    "decision_refs": [
+      "fixture-consent",
+      "fixture-review"
+    ]
+  }
+]

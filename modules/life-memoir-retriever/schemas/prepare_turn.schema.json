@@ -1,0 +1,242 @@
+{
+  "$defs": {
+    "Conditions": {
+      "additionalProperties": false,
+      "properties": {
+        "noise": {
+          "default": "unknown",
+          "enum": [
+            "quiet",
+            "noisy",
+            "unknown"
+          ],
+          "title": "Noise",
+          "type": "string"
+        },
+        "communication_mode": {
+          "default": "text",
+          "enum": [
+            "voice",
+            "text"
+          ],
+          "title": "Communication Mode",
+          "type": "string"
+        }
+      },
+      "title": "Conditions",
+      "type": "object"
+    },
+    "ContextOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Query",
+          "type": "string"
+        },
+        "limit": {
+          "default": 8,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "max_chars": {
+          "default": 3000,
+          "maximum": 3000,
+          "minimum": 200,
+          "title": "Max Chars",
+          "type": "integer"
+        },
+        "context_locale": {
+          "default": "original",
+          "maxLength": 64,
+          "title": "Context Locale",
+          "type": "string"
+        }
+      },
+      "title": "ContextOptions",
+      "type": "object"
+    },
+    "Controls": {
+      "additionalProperties": false,
+      "properties": {
+        "stop_session": {
+          "default": false,
+          "title": "Stop Session",
+          "type": "boolean"
+        },
+        "skip_topic": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skip Topic"
+        },
+        "do_not_persist": {
+          "default": false,
+          "title": "Do Not Persist",
+          "type": "boolean"
+        }
+      },
+      "title": "Controls",
+      "type": "object"
+    },
+    "ResponseStyle": {
+      "additionalProperties": false,
+      "properties": {
+        "question_form": {
+          "default": "unknown",
+          "enum": [
+            "open",
+            "concrete",
+            "none",
+            "unknown"
+          ],
+          "title": "Question Form",
+          "type": "string"
+        },
+        "tts_rate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 4,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tts Rate"
+        }
+      },
+      "title": "ResponseStyle",
+      "type": "object"
+    },
+    "Turn": {
+      "additionalProperties": false,
+      "properties": {
+        "turn_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Turn Id",
+          "type": "string"
+        },
+        "speaker": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "title": "Speaker",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 16000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "is_final": {
+          "title": "Is Final",
+          "type": "boolean"
+        },
+        "occurred_at": {
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "text_locale": {
+          "default": "und",
+          "maxLength": 64,
+          "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+          "title": "Text Locale",
+          "type": "string"
+        },
+        "conditions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Conditions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "response_style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResponseStyle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "controls": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Controls"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "turn_id",
+        "speaker",
+        "text",
+        "is_final",
+        "occurred_at"
+      ],
+      "title": "Turn",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "session_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "turn": {
+      "$ref": "#/$defs/Turn"
+    },
+    "context": {
+      "$ref": "#/$defs/ContextOptions"
+    },
+    "deadline_ms": {
+      "default": 100,
+      "maximum": 100,
+      "minimum": 10,
+      "title": "Deadline Ms",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_id",
+    "session_id",
+    "turn"
+  ],
+  "title": "PrepareTurn",
+  "type": "object"
+}

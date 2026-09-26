@@ -1,0 +1,71 @@
+{
+  "$defs": {
+    "Grants": {
+      "additionalProperties": false,
+      "properties": {
+        "long_term_memory": {
+          "title": "Long Term Memory",
+          "type": "boolean"
+        },
+        "profile_learning": {
+          "title": "Profile Learning",
+          "type": "boolean"
+        },
+        "family_digest": {
+          "title": "Family Digest",
+          "type": "boolean"
+        },
+        "remote_analysis": {
+          "title": "Remote Analysis",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "long_term_memory",
+        "profile_learning",
+        "family_digest",
+        "remote_analysis"
+      ],
+      "title": "Grants",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "user_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "User Id",
+      "type": "string"
+    },
+    "expected_version": {
+      "minimum": 0,
+      "title": "Expected Version",
+      "type": "integer"
+    },
+    "grants": {
+      "$ref": "#/$defs/Grants"
+    },
+    "consent_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Consent Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "user_id",
+    "expected_version",
+    "grants",
+    "consent_ref"
+  ],
+  "title": "SetPolicy",
+  "type": "object"
+}

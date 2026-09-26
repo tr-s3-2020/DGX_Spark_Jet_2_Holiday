@@ -1,0 +1,1004 @@
+{
+  "design_version": "0.5",
+  "status": "设计样例；全部人物、文本、ID、结果均为虚构；未调用服务",
+  "authentication": "省略真实凭据；请求由已认证且绑定 demo-elder-001 的宿主提交。consent_ref 与 decision_ref 必须由宿主提供可核验记录。",
+  "examples": [
+    {
+      "id": "01_policy",
+      "purpose": "宿主已获得本人许可；同意记录由可信适配器核验。",
+      "request": {
+        "method": "PUT",
+        "path": "/v1/memory/users/demo-elder-001/policy",
+        "body": {
+          "request_id": "req-policy-1",
+          "expected_version": 0,
+          "consent_ref": "demo-consent-001",
+          "grants": {
+            "long_term_memory": true,
+            "profile_learning": true,
+            "family_digest": false,
+            "remote_analysis": false
+          }
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-policy-1",
+          "status": "ok",
+          "data": {
+            "policy_version": 1,
+            "grants": {
+              "long_term_memory": true,
+              "profile_learning": true,
+              "family_digest": false,
+              "remote_analysis": false
+            }
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 1,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "02_open",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions",
+        "body": {
+          "request_id": "req-open-1",
+          "user_id": "demo-elder-001",
+          "session_id": "demo-session-001",
+          "locale": "zh-CN",
+          "conditions": {
+            "noise": "quiet",
+            "communication_mode": "voice"
+          },
+          "reply_locale": "zh-CN"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-open-1",
+          "status": "ok",
+          "data": {
+            "session_id": "demo-session-001",
+            "session_version": 1,
+            "state": "open",
+            "policy_version": 1,
+            "locale": "zh-CN",
+            "reply_locale": "zh-CN"
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 1,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "03_user_turn",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-001/turns",
+        "body": {
+          "request_id": "req-turn-1-user",
+          "turn_id": "turn-001",
+          "speaker": "user",
+          "text": "以后叫我陈老师吧。我最近在种茉莉。",
+          "is_final": true,
+          "occurred_at": "2026-09-26T10:00:00+08:00",
+          "text_locale": "zh-CN"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-turn-1-user",
+          "status": "ok",
+          "data": {
+            "turn_id": "turn-001",
+            "speaker": "user",
+            "session_version": 2,
+            "storage": "volatile",
+            "effective_controls": {
+              "stop_session": false,
+              "do_not_persist": false
+            }
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 1,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "04_assistant_turn",
+      "purpose": "这条只是虚构的实际播报示例，不作为用户经历或偏好的证据。",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-001/turns",
+        "body": {
+          "request_id": "req-turn-1-assistant",
+          "turn_id": "turn-001",
+          "speaker": "assistant",
+          "text": "陈老师，您的茉莉最近长得怎么样？",
+          "is_final": true,
+          "occurred_at": "2026-09-26T10:00:05+08:00",
+          "response_style": {
+            "question_form": "concrete",
+            "tts_rate": 1
+          },
+          "text_locale": "zh-CN"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-turn-1-assistant",
+          "status": "ok",
+          "data": {
+            "turn_id": "turn-001",
+            "speaker": "assistant",
+            "session_version": 3,
+            "storage": "volatile",
+            "effective_controls": {
+              "stop_session": false,
+              "do_not_persist": false
+            }
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 1,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "05_feedback",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-001/turns",
+        "body": {
+          "request_id": "req-turn-2-user",
+          "turn_id": "turn-002",
+          "speaker": "user",
+          "text": "以后问题短一点就好。今天先聊到这里。",
+          "is_final": true,
+          "occurred_at": "2026-09-26T10:01:00+08:00",
+          "controls": {
+            "stop_session": true,
+            "do_not_persist": false
+          },
+          "text_locale": "zh-CN"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-turn-2-user",
+          "status": "ok",
+          "data": {
+            "turn_id": "turn-002",
+            "speaker": "user",
+            "session_version": 4,
+            "storage": "volatile",
+            "effective_controls": {
+              "stop_session": true,
+              "do_not_persist": false
+            }
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 1,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "06_close",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-001/close",
+        "body": {
+          "request_id": "req-close-1",
+          "expected_session_version": 4,
+          "reason": "user_stopped"
+        }
+      },
+      "response": {
+        "http_status": 202,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-close-1",
+          "status": "accepted",
+          "data": {
+            "job_id": "demo-job-001",
+            "state": "queued",
+            "session_version": 5
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 1,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "07_job_complete",
+      "purpose": "模拟完成结果；不是已执行的模型或数据库返回。",
+      "request": {
+        "method": "GET",
+        "path": "/v1/memory/jobs/demo-job-001",
+        "headers": {
+          "X-Request-ID": "req-job-1"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-job-1",
+          "status": "ok",
+          "data": {
+            "job_id": "demo-job-001",
+            "state": "completed",
+            "created_entry_ids": [
+              "entry-name",
+              "entry-jasmine",
+              "entry-short-questions"
+            ],
+            "updated_entry_ids": [],
+            "skipped_reasons": [],
+            "failure": null,
+            "kind": "session_extract",
+            "depends_on": [],
+            "snapshot": {
+              "policy_version": 1,
+              "memory_revision": 1,
+              "session_id": "demo-session-001",
+              "session_version": 5,
+              "source_entry_versions": []
+            },
+            "published_revision": 2
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 2,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "08_second_session",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions",
+        "body": {
+          "request_id": "req-open-2",
+          "user_id": "demo-elder-001",
+          "session_id": "demo-session-002",
+          "locale": "zh-CN",
+          "reply_locale": "zh-CN"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-open-2",
+          "status": "ok",
+          "data": {
+            "session_id": "demo-session-002",
+            "session_version": 1,
+            "state": "open",
+            "policy_version": 1,
+            "locale": "zh-CN",
+            "reply_locale": "zh-CN"
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 2,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "09_context",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-002/context",
+        "body": {
+          "request_id": "req-context-2",
+          "purpose": "conversation",
+          "query": "最近种的花",
+          "limit": 8,
+          "max_chars": 3000
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-context-2",
+          "status": "ok",
+          "data": {
+            "session_state": {},
+            "memories": [
+              {
+                "entry_id": "entry-jasmine",
+                "kind": "recent",
+                "content": "本人说最近在种茉莉。",
+                "basis": "self_report",
+                "source_refs": [
+                  {
+                    "evidence_id": "ev-jasmine",
+                    "session_id": "demo-session-001",
+                    "turn_id": "turn-001"
+                  }
+                ],
+                "expires_at": "2026-10-03T02:01:10Z",
+                "version": 1,
+                "content_locale": "zh-CN"
+              }
+            ],
+            "preferences": [
+              {
+                "entry_id": "entry-name",
+                "kind": "preference",
+                "content": "本人希望称呼为陈老师。",
+                "basis": "self_report",
+                "source_refs": [
+                  {
+                    "evidence_id": "ev-name",
+                    "session_id": "demo-session-001",
+                    "turn_id": "turn-001"
+                  }
+                ],
+                "expires_at": null,
+                "version": 1,
+                "conditions": {},
+                "content_locale": "zh-CN"
+              },
+              {
+                "entry_id": "entry-short-questions",
+                "kind": "preference",
+                "content": "本人明确希望以后的问题简短。",
+                "basis": "self_report",
+                "source_refs": [
+                  {
+                    "evidence_id": "ev-short",
+                    "session_id": "demo-session-001",
+                    "turn_id": "turn-002"
+                  }
+                ],
+                "expires_at": null,
+                "version": 1,
+                "conditions": {},
+                "content_locale": "zh-CN"
+              }
+            ],
+            "review_suggestions": [],
+            "match_status": "matched"
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 2,
+            "replayed": false,
+            "warnings": [],
+            "timings": {
+              "total_ms": 5.0,
+              "memory_ms": 3.0
+            },
+            "cache_status": "hit",
+            "retrieval_complete": true,
+            "deadline_exceeded": false
+          }
+        }
+      }
+    },
+    {
+      "id": "10_family_denied",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-002/context",
+        "body": {
+          "request_id": "req-family-1",
+          "purpose": "family_digest",
+          "query": "最近种的花"
+        }
+      },
+      "response": {
+        "http_status": 403,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-family-1",
+          "status": "error",
+          "data": null,
+          "error": {
+            "code": "PERMISSION_DENIED",
+            "message": "Requested use is not permitted.",
+            "retryable": false
+          },
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 2,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "11_forget",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/users/demo-elder-001/forget",
+        "body": {
+          "request_id": "req-forget-1",
+          "scope": "entries",
+          "entry_ids": [
+            "entry-jasmine"
+          ],
+          "decision_ref": "demo-forget-001"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-forget-1",
+          "status": "ok",
+          "data": {
+            "deleted_entry_ids": [
+              "entry-jasmine"
+            ],
+            "invalidated_entry_ids": [],
+            "memory_revision": 3,
+            "scope": "entries"
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 3,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "12_version_conflict",
+      "purpose": "独立的错误示例，不是顺序成功流程的一部分。",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/memory/entries/entry-name",
+        "body": {
+          "request_id": "req-revise-conflict",
+          "expected_version": 99,
+          "action": "correct_content",
+          "decision_ref": "demo-review-001",
+          "content": "本人希望称呼为老陈。"
+        }
+      },
+      "response": {
+        "http_status": 409,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-revise-conflict",
+          "status": "error",
+          "data": null,
+          "error": {
+            "code": "VERSION_CONFLICT",
+            "message": "Entry version does not match.",
+            "retryable": false
+          },
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 3,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "13_prepare_turn",
+      "purpose": "v0.2 实时合并入口；接续第二次会话。茉莉条目已在示例11删除，仅保留允许使用的偏好；耗时为虚构演示值，非实测。",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-002/prepare-turn",
+        "body": {
+          "request_id": "req-prepare-1",
+          "turn": {
+            "turn_id": "turn-003",
+            "speaker": "user",
+            "text": "今天想聊聊种花。",
+            "is_final": true,
+            "occurred_at": "2026-09-27T10:00:00+08:00",
+            "text_locale": "zh-CN"
+          },
+          "context": {
+            "query": "种花",
+            "limit": 8,
+            "max_chars": 3000
+          },
+          "deadline_ms": 100
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-prepare-1",
+          "status": "ok",
+          "data": {
+            "observation": {
+              "turn_id": "turn-003",
+              "speaker": "user",
+              "session_version": 2,
+              "storage": "volatile",
+              "effective_controls": {
+                "stop_session": false,
+                "do_not_persist": false
+              }
+            },
+            "context": {
+              "session_state": {},
+              "memories": [],
+              "preferences": [
+                {
+                  "entry_id": "entry-name",
+                  "kind": "preference",
+                  "content": "本人希望称呼为陈老师。",
+                  "basis": "self_report",
+                  "source_refs": [
+                    {
+                      "evidence_id": "ev-name",
+                      "session_id": "demo-session-001",
+                      "turn_id": "turn-001"
+                    }
+                  ],
+                  "expires_at": null,
+                  "version": 1,
+                  "conditions": {},
+                  "content_locale": "zh-CN"
+                },
+                {
+                  "entry_id": "entry-short-questions",
+                  "kind": "preference",
+                  "content": "本人明确希望以后的问题简短。",
+                  "basis": "self_report",
+                  "source_refs": [
+                    {
+                      "evidence_id": "ev-short",
+                      "session_id": "demo-session-001",
+                      "turn_id": "turn-002"
+                    }
+                  ],
+                  "expires_at": null,
+                  "version": 1,
+                  "conditions": {},
+                  "content_locale": "zh-CN"
+                }
+              ],
+              "review_suggestions": [],
+              "match_status": "matched"
+            }
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 3,
+            "replayed": false,
+            "warnings": [],
+            "timings": {
+              "total_ms": 7.0,
+              "memory_ms": 3.0
+            },
+            "cache_status": "hit",
+            "retrieval_complete": true,
+            "deadline_exceeded": false
+          }
+        }
+      }
+    },
+    {
+      "id": "14_prepare_timeout",
+      "purpose": "模拟额外历史搜索超预算、但已验证的偏好快照仍有效；返回部分结果，主控不得将其说成没有其他记忆。102 ms 为虚构值，说明预算不是硬实时保证。",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-002/prepare-turn",
+        "body": {
+          "request_id": "req-prepare-timeout",
+          "turn": {
+            "turn_id": "turn-004",
+            "speaker": "user",
+            "text": "我以前还学过一门手艺。",
+            "is_final": true,
+            "occurred_at": "2026-09-27T10:00:30+08:00",
+            "text_locale": "zh-CN"
+          },
+          "context": {
+            "query": "以前学过的手艺"
+          },
+          "deadline_ms": 100
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-prepare-timeout",
+          "status": "degraded",
+          "data": {
+            "observation": {
+              "turn_id": "turn-004",
+              "speaker": "user",
+              "session_version": 3,
+              "storage": "volatile",
+              "effective_controls": {
+                "stop_session": false,
+                "do_not_persist": false
+              }
+            },
+            "context": {
+              "session_state": {},
+              "memories": [],
+              "preferences": [
+                {
+                  "entry_id": "entry-name",
+                  "kind": "preference",
+                  "content": "本人希望称呼为陈老师。",
+                  "basis": "self_report",
+                  "source_refs": [
+                    {
+                      "evidence_id": "ev-name",
+                      "session_id": "demo-session-001",
+                      "turn_id": "turn-001"
+                    }
+                  ],
+                  "expires_at": null,
+                  "version": 1,
+                  "conditions": {},
+                  "content_locale": "zh-CN"
+                },
+                {
+                  "entry_id": "entry-short-questions",
+                  "kind": "preference",
+                  "content": "本人明确希望以后的问题简短。",
+                  "basis": "self_report",
+                  "source_refs": [
+                    {
+                      "evidence_id": "ev-short",
+                      "session_id": "demo-session-001",
+                      "turn_id": "turn-002"
+                    }
+                  ],
+                  "expires_at": null,
+                  "version": 1,
+                  "conditions": {},
+                  "content_locale": "zh-CN"
+                }
+              ],
+              "review_suggestions": [],
+              "match_status": "partial"
+            }
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 3,
+            "replayed": false,
+            "warnings": [
+              "CONTEXT_DEADLINE_EXCEEDED"
+            ],
+            "timings": {
+              "total_ms": 102.0,
+              "memory_ms": 98.0
+            },
+            "cache_status": "hit",
+            "retrieval_complete": false,
+            "deadline_exceeded": true
+          }
+        }
+      }
+    },
+    {
+      "id": "15_language_variant_missing",
+      "purpose": "读取英文上下文变体的设计样例；暂无英文译文时仍返回中文原记录并警告，不在线翻译，不把正常命中误报为未命中。所有耗时均为虚构值。",
+      "request": {
+        "method": "POST",
+        "path": "/v1/memory/sessions/demo-session-002/context",
+        "body": {
+          "request_id": "req-language-variant",
+          "purpose": "conversation",
+          "query": "称呼和提问偏好",
+          "context_locale": "en-US",
+          "deadline_ms": 100
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-language-variant",
+          "status": "degraded",
+          "data": {
+            "session_state": {},
+            "memories": [],
+            "preferences": [
+              {
+                "entry_id": "entry-name",
+                "kind": "preference",
+                "content": "本人希望称呼为陈老师。",
+                "basis": "self_report",
+                "source_refs": [
+                  {
+                    "evidence_id": "ev-name",
+                    "session_id": "demo-session-001",
+                    "turn_id": "turn-001"
+                  }
+                ],
+                "expires_at": null,
+                "version": 1,
+                "conditions": {},
+                "content_locale": "zh-CN"
+              },
+              {
+                "entry_id": "entry-short-questions",
+                "kind": "preference",
+                "content": "本人明确希望以后的问题简短。",
+                "basis": "self_report",
+                "source_refs": [
+                  {
+                    "evidence_id": "ev-short",
+                    "session_id": "demo-session-001",
+                    "turn_id": "turn-002"
+                  }
+                ],
+                "expires_at": null,
+                "version": 1,
+                "conditions": {},
+                "content_locale": "zh-CN"
+              }
+            ],
+            "review_suggestions": [],
+            "match_status": "matched"
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 3,
+            "replayed": false,
+            "warnings": [
+              "LANGUAGE_VARIANT_UNAVAILABLE"
+            ],
+            "timings": {
+              "total_ms": 6.0,
+              "memory_ms": 3.0
+            },
+            "cache_status": "hit",
+            "retrieval_complete": true,
+            "deadline_exceeded": false
+          }
+        }
+      }
+    },
+    {
+      "id": "16_background_parallel_snapshot",
+      "purpose": "独立分支样例，时间设定在示例 07 提交后、示例 11 删除前；授权维护方查看偏好分析与无需模型的缓存准备同时运行。实时上下文仍使用已发布版本 2，不等待任务。全部为虚构设计数据，并非并发实测。",
+      "request": {
+        "method": "GET",
+        "path": "/v1/memory/users/demo-elder-001/jobs",
+        "headers": {
+          "X-Request-ID": "req-jobs-parallel"
+        },
+        "query": {
+          "state": "running",
+          "limit": 20
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-jobs-parallel",
+          "status": "ok",
+          "data": {
+            "items": [
+              {
+                "job_id": "demo-job-pref-002",
+                "kind": "preference_reconcile",
+                "state": "running",
+                "depends_on": [
+                  "demo-job-001"
+                ],
+                "snapshot": {
+                  "policy_version": 1,
+                  "memory_revision": 2,
+                  "session_id": null,
+                  "session_version": null,
+                  "source_entry_versions": [
+                    {
+                      "entry_id": "entry-name",
+                      "version": 1
+                    },
+                    {
+                      "entry_id": "entry-short-questions",
+                      "version": 1
+                    }
+                  ]
+                },
+                "published_revision": null,
+                "created_entry_ids": [],
+                "updated_entry_ids": [],
+                "skipped_reasons": [],
+                "failure": null
+              },
+              {
+                "job_id": "demo-job-context-002",
+                "kind": "context_prepare",
+                "state": "running",
+                "depends_on": [
+                  "demo-job-001"
+                ],
+                "snapshot": {
+                  "policy_version": 1,
+                  "memory_revision": 2,
+                  "session_id": null,
+                  "session_version": null,
+                  "source_entry_versions": [
+                    {
+                      "entry_id": "entry-name",
+                      "version": 1
+                    },
+                    {
+                      "entry_id": "entry-jasmine",
+                      "version": 1
+                    },
+                    {
+                      "entry_id": "entry-short-questions",
+                      "version": 1
+                    }
+                  ]
+                },
+                "published_revision": null,
+                "created_entry_ids": [],
+                "updated_entry_ids": [],
+                "skipped_reasons": [],
+                "failure": null
+              }
+            ],
+            "next_cursor": null
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 2,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    },
+    {
+      "id": "17_chronicle_not_ready",
+      "purpose": "独立分支场景：已有故事，但年谱尚未发布。读取立即返回未就绪，不启动模型或等待分析。",
+      "request": {
+        "method": "GET",
+        "path": "/v1/memory/users/demo-elder-001/chronicle",
+        "headers": {
+          "X-Request-ID": "req-chronicle-pending"
+        },
+        "query": {
+          "purpose": "conversation",
+          "format": "structured"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-chronicle-pending",
+          "status": "degraded",
+          "data": {
+            "state": "not_ready",
+            "view_version": null,
+            "based_on_memory_revision": null,
+            "format": "structured",
+            "content": null,
+            "warnings": [
+              "CHRONICLE_NOT_READY"
+            ]
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 3,
+            "replayed": false,
+            "warnings": [
+              "CHRONICLE_NOT_READY"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "18_chronicle_reject_inference",
+      "purpose": "独立年谱样例：可信本人复核流程拒绝推算，立即使旧视图失效；新计算在后台执行。不是默认为老人做决定。",
+      "request": {
+        "method": "PATCH",
+        "path": "/v1/memory/chronicle/events/event-factory",
+        "body": {
+          "request_id": "req-chronicle-reject",
+          "expected_event_version": 1,
+          "action": "reject_inference",
+          "decision_ref": "synthetic-elder-review-1",
+          "resolution_version": 1,
+          "alternative_id": "alt-factory"
+        }
+      },
+      "response": {
+        "http_status": 200,
+        "body": {
+          "api_version": "1.0",
+          "request_id": "req-chronicle-reject",
+          "status": "ok",
+          "data": {
+            "event_id": "event-factory",
+            "event_version": 2,
+            "time_state": "pending_rebuild",
+            "invalidated_view_versions": [
+              1
+            ],
+            "queued_job_ids": [
+              "chronicle-rebuild-demo-2"
+            ]
+          },
+          "error": null,
+          "meta": {
+            "policy_version": 1,
+            "memory_revision": 6,
+            "replayed": false,
+            "warnings": []
+          }
+        }
+      }
+    }
+  ]
+}
