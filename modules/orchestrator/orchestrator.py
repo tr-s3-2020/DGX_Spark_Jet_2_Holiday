@@ -226,8 +226,9 @@ class Orchestrator:
             data = prepared.get("data") or {}
             out.memories = data.get("memories") or []
             out.match_status = data.get("match_status", "")
-            out.events.append(f"skill3_memories={len(out.memories)}"
-                              f"({out.match_status})")
+            out.events.append(
+                f"skill3_memories={len(out.memories)}"
+                + (f"({out.match_status})" if out.match_status else ""))
         except asyncio.TimeoutError:
             out.degraded.append("memory_timeout")
             out.events.append("skill3=timeout")
