@@ -17,7 +17,12 @@ import json
 import logging
 import sys
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
+try:                      # datetime.UTC 是 3.11 才加的
+    from datetime import UTC
+except ImportError:       # 3.10 兼容
+    from datetime import timezone
+    UTC = timezone.utc
 from typing import Any
 
 from .settings import get_settings

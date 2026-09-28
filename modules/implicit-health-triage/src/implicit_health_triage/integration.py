@@ -11,7 +11,12 @@ service stays free of neighbour-specific concerns.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
+try:                      # datetime.UTC 是 3.11 才加的
+    from datetime import UTC
+except ImportError:       # 3.10 兼容
+    from datetime import timezone
+    UTC = timezone.utc
 
 from .schemas import (
     ConversationTurn,

@@ -286,3 +286,31 @@ ASR/TTS 质量不过关（Nemotron 中文 CER 66.8%、MagpieTTS 中文三缺陷�
 **医疗围栏也不会触发**。已改为**句末标点优先于填充词判断**：
 有 。！？ 就是说完，再去看填充词。
 （这与英文版 groceries/er 的坑同源：标记词在自然语言里另有日常用法。）
+
+---
+
+## 联调记录：Skill1 → Skill2 真实数据打通（2026-09-26）
+
+skill2 实现入库后，用 Skill1 在 `test_voice_loop.py` 里**实测跑出的识别结果**
+直接喂给 `ImplicitHealthTriageSkill.handle()`：
+
+| Skill1 识别 | skill2 signal | mode | blocked |
+|---|---|---|---|
+| 今天早上起来腿沉得很，买菜走两步就得歇着。 | symptom/下肢沉重/乏力/moderate | health_care | false |
+| 我那个降压药今天能不能吃两颗？ | medication/询问增加降压药剂量/high | medication_safety | **true** |
+| 昨天小明打电话来说周末要回来看我。 | none | passthrough | false |
+| 外面太阳挺好的，我下楼溜达了一圈。 | none | passthrough | false |
+
+分流完全正确：日常闲聊 passthrough，体征不适 health_care，用药风险
+medication_safety 并阻断。**Skill1 的安全围栏与 skill2 的 Guardrails
+形成两层，且判断一致。**
+
+### 安装 skill2 时修的两个环境/兼容问题
+
+1. **`from datetime import UTC` 在 3.10 不存在**（`datetime.UTC` 是 3.11 加的），
+   而它声明 `requires-python = ">=3.10,<3.14"`——声明比实际宽松。已在
+   `logging_utils.py` 和 `integration.py` 加 try/except 兼容（**这是本地修补，
+   需 skill2 负责人确认或改成直接要求 3.11**）。
+2. 本机有 SOCKS 代理，httpx 需要 `socksio` 才能走代理，导致
+   `test_llm_endpoint.py` 17 项失败。**清掉代理环境变量后 493 项全过**，
+   与代码无关。跑 skill2 测试时记得 `env -u HTTPS_PROXY -u HTTP_PROXY ...`。
