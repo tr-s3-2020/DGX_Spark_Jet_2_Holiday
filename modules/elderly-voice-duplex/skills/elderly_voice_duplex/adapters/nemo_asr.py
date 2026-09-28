@@ -37,7 +37,7 @@ class NemoStreamingASR(ASRBackend):
         self.device = device
         # 模型权重走项目内的 HF 缓存，不写 HOME
         os.environ.setdefault("HF_HOME", os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", "..", ".cache", "hf"))
+            os.path.dirname(__file__), "..", "..", "..", "..", "..", ".cache", "hf"))
         self._model = ASRModel.from_pretrained(self.model_name)
         if device == "cuda":
             self._model = self._model.cuda()

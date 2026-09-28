@@ -30,7 +30,7 @@ from skills.elderly_voice_duplex.adapters import (  # noqa: E402
     make_asr, make_llm, make_tts, make_vad)
 from skills.elderly_voice_duplex.duplex import VoiceDuplex  # noqa: E402
 
-PROJECT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..",
+PROJECT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..",
                                        "..", ".."))
 AUDIO_DIR = os.path.join(PROJECT, ".cache", "voice-probe", "audio")
 

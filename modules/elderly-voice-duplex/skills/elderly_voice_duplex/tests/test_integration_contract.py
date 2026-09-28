@@ -26,7 +26,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-PROJECT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..",
+PROJECT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..",
                                        "..", ".."))
 SCHEMA_DIR = os.path.join(PROJECT, "modules", "life-memoir-retriever", "schemas")
 

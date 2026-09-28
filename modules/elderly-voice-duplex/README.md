@@ -32,7 +32,7 @@
 cd ../../ && PROFILE=full bash scripts/serve_v019.sh
 
 # 2. 只验证技能逻辑（不需要音频硬件、不需要 NeMo）
-cd elderly-companion
+cd modules/elderly-voice-duplex
 python3 skills/elderly_voice_duplex/tests/test_duplex_live.py
 
 # 3. 起 WebSocket 服务
@@ -42,7 +42,7 @@ python3 skills/elderly_voice_duplex/server.py --port 8100
 ## 目录
 
 ```
-elderly-companion/
+modules/elderly-voice-duplex/
 ├── README.md                      ← 本文
 ├── docs/
 │   ├── ARCHITECTURE.md            全双工架构、状态机、延迟预算

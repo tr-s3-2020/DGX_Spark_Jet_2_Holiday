@@ -15,13 +15,13 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 - [第三项可运行联调包](modules/life-memoir-retriever/README.md)：安装、接口、测试与协作分工。
 - [第三项设计档案](docs/module-3/DESIGN.md)：完整架构目标；已实现范围以联调包为准。
 - [老人对话与口述史资料库](research/elder-conversation-oral-history/README.md)：来源笔记、研究综述、对话 SOP 与评估草案。
-- [语音 Skill 选型记录](elderly-companion/docs/SDK-CHOICES.md)：ASR/TTS 的全部实测数据与方案变更。
+- [语音 Skill 选型记录](modules/elderly-voice-duplex/docs/SDK-CHOICES.md)：ASR/TTS 的全部实测数据与方案变更。
 
 ## 三个 Skill 的当前状态
 
 | Skill | 负责分支 | 状态 |
 |---|---|---|
-| 一 `elderly-voice-duplex`（全双工拟人倾听与外呼） | `ziyang-module-1` | ✅ 可跑。代码 `elderly-companion/skills/elderly_voice_duplex/`；ASR/TTS = Paraformer + edge-tts；端到端语音闭环 4/4 通过 |
+| 一 `elderly-voice-duplex`（全双工拟人倾听与外呼） | `ziyang-module-1` | ✅ 可跑。代码 `modules/elderly-voice-duplex/skills/elderly_voice_duplex/`；ASR/TTS = Paraformer + edge-tts；端到端语音闭环 4/4 通过 |
 | 二 `implicit-health-triage`（隐式健康探针与用药安全） | `docs/task2-collaboration-handoff` | ⚠️ **仅接口文档**，实现代码尚未入库（拟放 `modules/implicit-health-triage/`） |
 | 三 `life-memoir-retriever`（口述史图谱与长程记忆） | `codex/luyifeng-module-3` | ⚠️ Skill 定义 + JSON Schema + `src/life_memoir/` 实现 + 冒烟脚本已入库，**尚未在本环境安装验证** |
 
@@ -32,7 +32,7 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 `integration/skills-1-2-3` 合并以上三个分支用于串联验证。任务二只有接口文档
 （实现待入库），所以目前先做**契约级校验**：用 Skill 一的真实输出去比对任务二的
 输入输出约定和任务三的 JSON Schema。见
-`elderly-companion/skills/elderly_voice_duplex/tests/test_integration_contract.py`。
+`modules/elderly-voice-duplex/skills/elderly_voice_duplex/tests/test_integration_contract.py`。
 
 ## 当前状态
 
@@ -50,7 +50,7 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 PROFILE=full bash scripts/serve_v019.sh
 
 # 2. 起 WebSocket 全双工服务
-cd elderly-companion
+cd modules/elderly-voice-duplex
 EVD_ASR=funasr EVD_TTS=edge python3 skills/elderly_voice_duplex/server.py --port 8100
 ```
 

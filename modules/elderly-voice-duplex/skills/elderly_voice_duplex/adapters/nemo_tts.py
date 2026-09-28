@@ -28,7 +28,7 @@ _SPK_ENC_URL = ("https://huggingface.co/Edresson/Speaker_Encoder_H_ASP/"
 
 
 def _local_speaker_encoder() -> str:
-    return os.path.join(os.path.dirname(__file__), "..", "..", "..", "..",
+    return os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..",
                         ".cache", "voice-probe", "tts", "speaker_encoder.bin")
 
 
@@ -59,7 +59,7 @@ class MagpieTTS(TTSBackend):
         from nemo.collections.tts.models import MagpieTTSModel
 
         os.environ.setdefault("HF_HOME", os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", "..", ".cache", "hf"))
+            os.path.dirname(__file__), "..", "..", "..", "..", "..", ".cache", "hf"))
         _patch_speaker_encoder_url()
 
         self.model_name = model or config.NEMO_TTS_MODEL

@@ -36,7 +36,7 @@ class ParaformerASR(ASRBackend):
 
         # 模型权重走项目内 HF 缓存，不写 HOME
         os.environ.setdefault("HF_HOME", os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", "..", ".cache", "hf"))
+            os.path.dirname(__file__), "..", "..", "..", "..", "..", ".cache", "hf"))
         self.device = device
         self.model = AutoModel(model=model, hub="hf", device=device,
                                disable_pbar=True, disable_log=True)
