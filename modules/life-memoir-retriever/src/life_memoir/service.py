@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from pydantic import ValidationError
+from ._compat import timeout
 from .backends import BackendError, make_backend
 from .config import Settings, Principal, configured_decision
 from .models import REQUESTS, READS, AnalysisResult
@@ -53,6 +54,8 @@ class MemoryService:
         self.runner = None
         self.wake = asyncio.Event()
         self.closed = False
+        self._close_task: asyncio.Task | None = None
+        self._close_complete = False
         self.last_sweep = 0.0
         self.model_semaphore = asyncio.Semaphore(self.settings.max_concurrency)
         path = self.settings.storage_path
@@ -136,20 +139,47 @@ class MemoryService:
         raise Fault("VALIDATION_ERROR")
 
     async def start(self):
+        if self.closed:
+            raise RuntimeError("memory service is closed")
         if self.runner is None:
-            self.runner = asyncio.create_task(self._scheduler())
+            self.runner = asyncio.create_task(self._scheduler(), name="life-memoir:scheduler")
         return self
 
     async def close(self):
-        self.closed = True
+        if self._close_complete:
+            return
+        if self._close_task is None or self._close_task.done():
+            self.closed = True
+            self._close_task = asyncio.create_task(self._shutdown(), name="life-memoir:shutdown")
+        shutdown = self._close_task
+        cancelled = None
+        while not shutdown.done():
+            try:
+                # Cancellation of any caller must not interrupt shared cleanup.
+                await asyncio.shield(shutdown)
+            except asyncio.CancelledError as error:
+                cancelled = error
+        shutdown.result()
+        if cancelled is not None:
+            raise cancelled
+
+    async def _shutdown(self):
         self.wake.set()
+        # Stop the producer before taking the final worker snapshot. A wakeup
+        # racing cancellation must not dispatch more jobs during shutdown.
         if self.runner:
             self.runner.cancel()
-        for task in self.tasks:
+            await asyncio.gather(self.runner, return_exceptions=True)
+        tasks = tuple(self.tasks)
+        for task in tasks:
             task.cancel()
-        await asyncio.gather(*(list(self.tasks) + ([self.runner] if self.runner else [])), return_exceptions=True)
-        self.buffers.clear()
-        self.db.close()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self.tasks.difference_update(tasks)
+        with self.lock:
+            self.buffers.clear()
+            self.cache.clear()
+            self.db.close()
+        self._close_complete = True
 
     def set_foreground_busy(self, busy: bool):
         self.foreground_busy = bool(busy)
@@ -680,7 +710,7 @@ class MemoryService:
         return all((e := self._get("entry", s["entry_id"])) and e["version"] == s["version"] for s in j["snapshot"]["source_entry_versions"])
 
     async def _scheduler(self):
-        while True:
+        while not self.closed:
             with self.lock, self.db:
                 self._sweep()
                 for j in self._all("job"):
@@ -707,12 +737,15 @@ class MemoryService:
                     j.update(state="running")
                     j["timings"]["queue_ms"] = round((self.clock() - j["created_at"]) * 1000, 3)
                     self._save_job(j)
-                    task = asyncio.create_task(self._run_job(j["job_id"]))
+                    task = asyncio.create_task(self._run_job(j["job_id"]), name=f"life-memoir:job:{j['job_id']}")
                     self.tasks.add(task)
                     task.add_done_callback(self.tasks.discard)
             try:
-                await asyncio.wait_for(self.wake.wait(), timeout=0.1)
-            except asyncio.TimeoutError:
+                # Await in the scheduler task itself: older wait_for versions can
+                # swallow cancellation when the child wait completes concurrently.
+                async with timeout(0.1):
+                    await self.wake.wait()
+            except (TimeoutError, asyncio.TimeoutError):
                 pass
             self.wake.clear()
 
@@ -728,7 +761,7 @@ class MemoryService:
                 existing = self._visible(uid, "conversation")[0]
                 turns = copy.deepcopy(self.buffers[job["snapshot"]["session_id"]]["turns"]) if job["kind"] == "session_extract" else []
                 u = self._user(uid)
-            async with asyncio.timeout(max(0.001, remaining)):
+            async with timeout(max(0.001, remaining)):
                 result = None
                 if job["kind"] in {"session_extract", "preference_reconcile"}:
                     if self.backend.location == "remote" and not u["grants"]["remote_analysis"]:
@@ -784,8 +817,8 @@ class MemoryService:
                         self._schedule_history(uid, include_preference=job["kind"] != "preference_reconcile")
         except asyncio.CancelledError:
             raise
-        except (TimeoutError, BackendError, ValidationError) as error:
-            code = "MODEL_TIMEOUT" if isinstance(error, TimeoutError) else error.code if isinstance(error, BackendError) else "MODEL_OUTPUT_INVALID"
+        except (TimeoutError, asyncio.TimeoutError, BackendError, ValidationError) as error:
+            code = "MODEL_TIMEOUT" if isinstance(error, (TimeoutError, asyncio.TimeoutError)) else error.code if isinstance(error, BackendError) else "MODEL_OUTPUT_INVALID"
             with self.lock, self.db:
                 job = self._get("job", job_id)
                 if job["state"] == "running":

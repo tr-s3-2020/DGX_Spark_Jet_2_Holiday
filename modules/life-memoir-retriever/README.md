@@ -8,7 +8,7 @@
 
 ## 队友从这里开始
 
-Python 3.11+，建议 3.12。以下命令在本目录执行：
+Python 3.10+，建议 3.12。3.10 的超时兼容依赖会随安装自动加入；更新旧环境时请重新执行下面的安装命令，不能只复制源码或检查编译。以下命令在本目录执行：
 
 ```bash
 python3 -m venv .venv
@@ -69,14 +69,18 @@ from life_memoir.config import Settings, Principal
 from life_memoir.service import MemoryService
 
 service = await MemoryService(Settings(storage_path=".data/memory.sqlite3")).start()
-# principal 从主控身份系统产生，不能接受模型填入的任意角色。
-result = await service.execute("prepare_turn", request, principal)
-# 与前台共用 GPU 时可在繁忙期间暂停新的后台模型任务：
-service.set_foreground_busy(True)
-service.set_foreground_busy(False)
-# 宿主退出时：
-await service.close()
+try:
+    # principal 从主控身份系统产生，不能接受模型填入的任意角色。
+    result = await service.execute("prepare_turn", request, principal)
+    # 与前台共用 GPU 时可在繁忙期间暂停新的后台模型任务：
+    service.set_foreground_busy(True)
+    service.set_foreground_busy(False)
+finally:
+    # 正常退出、异常或取消时都清理后台任务。
+    await service.close()
 ```
+
+`close()` 先停止调度，再取消并等待已登记的后台任务，最后清理内存与关闭数据库；支持重复或并发调用。调用方在关闭中被取消时，会先完成共享清理再向该调用方抛出 `CancelledError`。已关闭实例不能再次 `start()`，需要创建新的 `MemoryService`。HTTP 生命周期也在 `finally` 中清理。自定义分析后端应及时响应取消，清理后继续抛出 `asyncio.CancelledError`。
 
 独立 HTTP 进程尚无 foreground_busy 控制接口，应由部署层隔离资源或用嵌入方式；已发出的模型请求不会自动抢占。服务重启会丢失未提交会话原文，相关提取任务明确失败，不伪造成功。
 
@@ -143,4 +147,6 @@ memory-skill schemas --out schemas
 python -m build
 ```
 
-测试涵盖跨会话/重启、原话引用、时间范围/冲突/循环、用户隔离、幂等、撤权时后台不落盘、不保存、更正/删除/TTL、家属隐藏锚点、慢分析不阻塞实时检索、HTTP 和模拟模型协议。无真实模型调用。constraints-tested.txt 记录本次验证版本；Skill 文件独立于 Python wheel，提交时一并交付 skills 目录。
+测试涵盖跨会话/重启、原话引用、时间范围/冲突/循环、用户隔离、幂等、撤权时后台不落盘、不保存、更正/删除/TTL、家属隐藏锚点、慢分析不阻塞实时检索、HTTP 和模拟模型协议。退出回归还覆盖唤醒与取消竞争、异常生命周期、重复关闭，以及有分析中和等待并发槽的任务时 `asyncio.run()` 的完整子进程退出。无真实模型调用。constraints-tested.txt 记录本次验证版本；Skill 文件独立于 Python wheel，提交时一并交付 skills 目录。
+
+退出压力测试可独立复跑：`python tests/shutdown_scenarios.py cancel_closer --repeat 100`；场景列表见该脚本的 `SCENARIOS`。CI 对 Python 3.10、3.11、3.12 运行完整测试，设置进程级超时，防止测试在事件循环收尾时无限挂起。实测结果与旧代码复现记录见 [VALIDATION.md](VALIDATION.md)。
