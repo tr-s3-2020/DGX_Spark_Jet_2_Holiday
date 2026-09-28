@@ -267,7 +267,10 @@ class Orchestrator:
                                      "is_final": True,
                                      "occurred_at": _now_iso(),
                                      "text_locale": self.locale,
-                                     "text": transcript}),
+                                     "text": transcript},
+                               # 必须给 query：skill3 的检索是拿 query 分词去
+                               # 匹配记忆内容，不给就一个词都没有，永远 empty。
+                               context={"query": transcript}),
                 timeout=TIMEOUT["memory"])
             data = prepared.get("data") or {}
             out.memories = data.get("memories") or []
