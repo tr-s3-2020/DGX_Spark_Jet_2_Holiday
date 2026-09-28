@@ -45,7 +45,10 @@ class FakeMemory:
     def __init__(self, prepare_result=None):
         self.calls: list[tuple[str, dict]] = []
         self.prepare_result = prepare_result or {
-            "status": "ok", "data": {"memories": [], "match_status": "empty"}}
+            "status": "ok",
+            "data": {"observation": {"session_version": 1},
+                     "context": {"memories": [], "preferences": [],
+                                 "match_status": "empty"}}}
         self.closed = False
         self.started = False
 
@@ -202,11 +205,32 @@ def test_memories_from_skill3_are_returned(orch):
     orch._memory.prepare_result = {
         "status": "ok",
         "data": {"match_status": "hit",
-                 "memories": [{"summary": "老人在纺织厂工作过"}]}}
-    out = asyncio.run(orch.turn("我现在退休了，想起以前上班的事了"))
+                 "context": {"memories": [], "match_status": "hit",
+                             "preferences": [
+                                 {"content": "老人在纺织厂工作过"}]}}}
+    out = asyncio.run(orch.turn("我以前是做什么工作的？"))
     assert out.match_status == "hit"
-    assert out.memories and "纺织厂" in out.memories[0]["summary"]
+    assert out.memories and "纺织厂" in out.memories[0]["content"]
     assert "skill3_memories=1" in events_of(out)
+
+
+def test_preference_memories_are_not_dropped(orch):
+    """skill3 把 preference 类条目放 preferences 而不是 memories。
+
+    回归保护：曾因为只读 data.memories（且没嵌到 context 底下）把这类
+    记忆全漏掉，用户实测"说过最喜欢泰坦尼克号，重进后助手说不知道"。
+    """
+    orch._memory.prepare_result = {
+        "status": "ok",
+        "data": {"context": {"match_status": "matched",
+                             "memories": [],
+                             "preferences": [
+                                 {"kind": "preference",
+                                  "content": "最喜欢看的电影是泰坦尼克号"}]}}}
+    out = asyncio.run(orch.turn("我最喜欢看的电影是什么？"))
+    assert out.match_status == "matched"
+    assert out.memories, "preference 类记忆不能被丢掉"
+    assert "泰坦尼克号" in out.memories[0]["content"]
 
 
 def test_empty_memories_is_not_an_error(orch):

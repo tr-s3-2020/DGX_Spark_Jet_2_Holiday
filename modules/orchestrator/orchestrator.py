@@ -272,11 +272,16 @@ class Orchestrator:
                                # 匹配记忆内容，不给就一个词都没有，永远 empty。
                                context={"query": transcript}),
                 timeout=TIMEOUT["memory"])
-            data = prepared.get("data") or {}
-            out.memories = data.get("memories") or []
+            data = (prepared.get("data") or {}).get("context") or {}
+            # skill3 把条目按 kind 分到不同数组：story/observation 进
+            # memories，preference 进 preferences——两者都要读，只读一个
+            # 就会漏掉另一类（"最喜欢看的电影是泰坦尼克号"是 preference）。
+            out.memories = (data.get("memories") or []) \
+                + (data.get("preferences") or [])
             out.match_status = data.get("match_status", "")
             # close_session 要的 expected_session_version 从这里拿
-            obs = data.get("observation") or {}
+            # （observation 和 context 是平级的，别从 context 里找）
+            obs = (prepared.get("data") or {}).get("observation") or {}
             if obs.get("session_version") is not None:
                 self._session_version = obs["session_version"]
             out.events.append(
