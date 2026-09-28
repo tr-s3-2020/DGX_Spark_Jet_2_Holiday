@@ -1,0 +1,37 @@
+{
+  "task4_commit": "6968c2df61c72ffa6bff0a53b77ecea0b77c60b7",
+  "checks": [
+    {
+      "case": "normal_none",
+      "degraded": false,
+      "D_acquisition": "no_signal",
+      "D_looks_degraded": false,
+      "safety_blocked": false,
+      "model_calls": 1
+    },
+    {
+      "case": "retry_success",
+      "degraded": false,
+      "D_acquisition": "no_signal",
+      "D_looks_degraded": false,
+      "safety_blocked": false,
+      "model_calls": 2
+    },
+    {
+      "case": "fallback",
+      "degraded": true,
+      "D_acquisition": "not_acquired",
+      "D_looks_degraded": true,
+      "safety_blocked": false,
+      "model_calls": 2
+    },
+    {
+      "case": "blocked",
+      "degraded": false,
+      "D_acquisition": "acquired",
+      "D_looks_degraded": false,
+      "safety_blocked": true,
+      "model_calls": 0
+    }
+  ]
+}

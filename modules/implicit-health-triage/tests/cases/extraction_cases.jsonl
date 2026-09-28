@@ -1,0 +1,27 @@
+{"text": "今天菜市场人可多了。", "expected_type": "无"}
+{"text": "昨天孙女给我打电话了。", "expected_type": "无"}
+{"text": "楼下桂花开了。", "expected_type": "无"}
+{"text": "今天隔壁老李过来下棋，我们下了两盘。", "expected_type": "无"}
+{"text": "今天天气挺好的，我在阳台上坐了一会儿。", "expected_type": "无"}
+{"text": "今天早上起来腿沉得很，买菜走两步就得歇着。", "expected_type": "身体不适", "expected_detail": "下肢沉重/乏力", "expected_severity": "中等"}
+{"text": "最近腿老觉得没劲。", "expected_type": "身体不适"}
+{"text": "今天走到楼下腿就发软。", "expected_type": "行动能力", "note": "走路时才出现的腿软 = 跌倒风险，归最具体的子类而非泛化的身体不适"}
+{"text": "这两天头有点晕。", "expected_type": "身体不适"}
+{"text": "最近老是咳嗽。", "expected_type": "身体不适"}
+{"text": "今天胸口有点闷，喘不上气。", "expected_type": "身体不适", "expected_severity": "需留意"}
+{"text": "昨天晚上睡得不太好，醒了好几次。", "expected_type": "睡眠"}
+{"text": "昨晚翻来覆去睡不着。", "expected_type": "睡眠"}
+{"text": "这几天总是失眠。", "expected_type": "睡眠"}
+{"text": "昨天晚上醒了三回，白天一点精神都没有。", "expected_type": "睡眠"}
+{"text": "今天膝盖还是有点疼，上楼的时候明显一些。", "expected_type": "疼痛", "expected_detail": "膝盖疼痛，上楼时更明显", "expected_severity": "中等"}
+{"text": "腰疼得直不起来。", "expected_type": "疼痛"}
+{"text": "这两天吃不下饭。", "expected_type": "食欲"}
+{"text": "没什么胃口，什么都不想吃。", "expected_type": "食欲"}
+{"text": "我早上的药已经按时吃了。", "expected_type": "用药", "expected_detail": "已按时服用早晨药物", "expected_severity": "轻微"}
+{"text": "今天还是跟平时一样吃药。", "expected_type": "用药"}
+{"text": "我今天忘吃药了。", "expected_type": "用药"}
+{"text": "今天量了血压，有点高。", "expected_type": "其他体征"}
+{"text": "今天隔壁老李来找我下棋了。", "expected_type": "无", "note": "guide section 8.5 few-shot"}
+{"text": "这两天走路不太稳，得扶着墙走。", "expected_type": "行动能力"}
+{"text": "昨天在厕所差点摔了一跤。", "expected_type": "行动能力"}
+{"text": "上礼拜在家摔了一跤，现在走路得拄拐。", "expected_type": "行动能力"}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "is_final": {
+      "title": "Is Final",
+      "type": "boolean"
+    },
+    "session_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "text": {
+      "maxLength": 16000,
+      "title": "Text",
+      "type": "string"
+    },
+    "turn_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "pattern": "\\S",
+      "title": "Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "turn_id",
+    "text",
+    "is_final"
+  ],
+  "title": "TriageInput",
+  "type": "object",
+  "x-source": "implicit_health_triage.task2.schemas.TriageInput"
+}

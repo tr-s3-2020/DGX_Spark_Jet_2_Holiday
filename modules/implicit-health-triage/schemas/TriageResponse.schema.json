@@ -1,0 +1,207 @@
+{
+  "$defs": {
+    "HealthSignal": {
+      "additionalProperties": false,
+      "description": "The exact structure specified by the task image.\n\n``severity`` is only an internal structured label used for downstream\nrouting. It never represents a clinical judgement.",
+      "example": {
+        "detail": "下肢沉重/乏力",
+        "severity": "中等",
+        "type": "身体不适"
+      },
+      "properties": {
+        "detail": {
+          "default": "",
+          "description": "简短中文概括，来自用户实际表达。type=无 时为空串。",
+          "examples": [
+            "下肢沉重/乏力"
+          ],
+          "maxLength": 256,
+          "title": "Detail",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity",
+          "default": "轻微",
+          "description": "内部排序标签，**不是医学诊断结论**。low=轻微或已按计划处理；moderate=明显影响日常活动或持续存在；high=剧烈、突发或危险信号。",
+          "examples": [
+            "moderate"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/HealthType",
+          "description": "健康信号类别。none=无健康信息；symptom=其他身体不适；sleep=睡眠；pain=明确疼痛；medication=用药；mobility=行动能力；appetite=食欲；other=其他体征。",
+          "examples": [
+            "symptom"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "HealthSignal",
+      "type": "object"
+    },
+    "HealthType": {
+      "description": "Category of an extracted health signal. **值本身即中文。**\n\n**This is a shallow hierarchy, not a flat list.** ``身体不适`` is the generic\nbodily-complaint type; ``疼痛``, ``睡眠``, ``食欲`` and ``行动能力`` are its more\nspecific subtypes. Producers pick the most specific type that fits, falling\nback to ``身体不适`` only when none does.\n\n::\n\n    无                        无健康信息\n    身体不适                  身体不适，类别不明确        <- 泛化类\n      ├─ 疼痛                 明确疼痛\n      ├─ 睡眠                 睡眠\n      ├─ 食欲                 食欲\n      └─ 行动能力             行走、平衡、跌倒\n    用药                      用药相关\n    其他体征                  血压、血糖等其他体征\n\nWhy this matters to a consumer\n------------------------------\nAsking \"was anything physically bothering her?\" by testing\n``type == \"身体不适\"`` **misses every specific case**. Use the helpers below,\nor the equivalent sets, instead:\n\n===========================================  ==========================================\nQuestion                                     Test\n===========================================  ==========================================\nAny health content?                          ``type != \"无\"``\nAny bodily complaint?                        ``is_bodily_symptom(type)``\nPain specifically?                           ``type in PAIN_TYPES``\nPain, tolerating generic producers?          ``type in PAIN_OR_GENERIC``\nMedication-related?                          ``type == \"用药\"``\n===========================================  ==========================================\n\nThe task image only required the generic type; the subtypes are an\nextension. A producer that only emits ``身体不适`` is still valid, which is\nexactly why ``PAIN_OR_GENERIC`` exists.\n\n值本身已是中文，因此不再需要单独的展示映射表——展示层直接用这些值。",
+      "enum": [
+        "无",
+        "身体不适",
+        "睡眠",
+        "疼痛",
+        "用药",
+        "行动能力",
+        "食欲",
+        "其他体征"
+      ],
+      "title": "HealthType",
+      "type": "string"
+    },
+    "ResponseMode": {
+      "description": "Which branch of the skill produced the response.\n\n- ``normal_chat``       no health content; ``response`` is an empty string\n- ``health_care``       health signal found; ``response`` is a caring reply\n- ``medication_safety`` medication request blocked; ``response`` is a fixed\n                        safety sentence that must be spoken verbatim\n\n``response_mode`` 是**程序分支标识**，不是展示内容，因此保持英文——\n它只用于 ``if`` 判断，从不出现在老人或家属看到的界面上。",
+      "enum": [
+        "normal_chat",
+        "health_care",
+        "medication_safety"
+      ],
+      "title": "ResponseMode",
+      "type": "string"
+    },
+    "Severity": {
+      "description": "Internal structured tag. NOT a medical diagnosis or clinical conclusion.\n\n**值本身即中文**，因为最终是中文展示。三个值刻意避开临床分级措辞\n（「轻 / 中 / 重」这类一出现在家属界面上就会被读成医学结论）：\n\n``轻微``\n    轻微，或已按计划处理（例如已经按时服药）\n``中等``\n    明显影响日常活动，或持续存在\n``需留意``\n    剧烈、突发，或属于需要优先关注的信号",
+      "enum": [
+        "轻微",
+        "中等",
+        "需留意"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "TriageResult": {
+      "description": "Unified skill output (task guide section 7.2).",
+      "example": {
+        "guardrail_triggered": false,
+        "health_signal": {
+          "detail": "下肢沉重/乏力",
+          "severity": "中等",
+          "type": "身体不适"
+        },
+        "response": "听起来您今天走路比平时费劲些。您今天平时该吃的药都按原来的安排吃了吗？",
+        "response_mode": "health_care",
+        "rule_id": null,
+        "text": "今天早上起来腿沉得很，买菜走两步就得歇着。"
+      },
+      "properties": {
+        "guardrail_triggered": {
+          "description": "是否被用药安全围栏拦截。为 true 时 response 是固定安全话术。",
+          "examples": [
+            false
+          ],
+          "title": "Guardrail Triggered",
+          "type": "boolean"
+        },
+        "health_signal": {
+          "$ref": "#/$defs/HealthSignal",
+          "description": "结构化健康信号（核心三字段）。"
+        },
+        "response": {
+          "description": "**可直接送 TTS 播报**的文本。normal_chat 时为空串（闲聊交回主对话系统，空串不要播报）；medication_safety 时为固定常量，必须原样播报，禁止其他模型补话。",
+          "examples": [
+            "听起来您今天走路比平时费劲些。您今天平时该吃的药都按原来的安排吃了吗？"
+          ],
+          "title": "Response",
+          "type": "string"
+        },
+        "response_mode": {
+          "$ref": "#/$defs/ResponseMode",
+          "description": "走了哪条分支，决定调用方如何处理 response。",
+          "examples": [
+            "health_care"
+          ]
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "仅拦截时为 MEDICATION_CHANGE_REQUEST，其余情况为 null。",
+          "examples": [
+            "MEDICATION_CHANGE_REQUEST"
+          ],
+          "title": "Rule Id"
+        },
+        "text": {
+          "description": "原样回显的输入文本。",
+          "examples": [
+            "今天早上起来腿沉得很，买菜走两步就得歇着。"
+          ],
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "health_signal",
+        "guardrail_triggered",
+        "response_mode",
+        "response"
+      ],
+      "title": "TriageResult",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "HTTP response body for ``POST /v1/triage`` (section 29.2).",
+  "example": {
+    "result": {
+      "guardrail_triggered": true,
+      "health_signal": {
+        "detail": "涉及具体用药调整询问",
+        "severity": "需留意",
+        "type": "用药"
+      },
+      "response": "这个涉及具体的用药剂量，我不能替您决定增加、减少或停止服药。请先按照医生给您的处方或药品说明来服用，如果不确定，最好联系医生或药师确认。",
+      "response_mode": "medication_safety",
+      "rule_id": "MEDICATION_CHANGE_REQUEST",
+      "text": "我降压药今天能不能吃两颗？"
+    },
+    "session_id": "s1",
+    "turn_id": "t1"
+  },
+  "properties": {
+    "result": {
+      "$ref": "#/$defs/TriageResult",
+      "description": "核心结果。见 TriageResult。"
+    },
+    "session_id": {
+      "description": "原样回显请求中的 session_id。",
+      "examples": [
+        "s1"
+      ],
+      "title": "Session Id",
+      "type": "string"
+    },
+    "turn_id": {
+      "description": "原样回显请求中的 turn_id。",
+      "examples": [
+        "t1"
+      ],
+      "title": "Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "turn_id",
+    "result"
+  ],
+  "title": "TriageResponse",
+  "type": "object",
+  "x-generated-by": "GENERATED by scripts/export_schemas.py — do not edit by hand.",
+  "x-role": "output: HTTP POST /v1/triage",
+  "x-source": "implicit_health_triage.schemas.TriageResponse"
+}
