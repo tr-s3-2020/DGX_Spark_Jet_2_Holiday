@@ -20,3 +20,6 @@ venv/
 
 # 运行期产物（脚本会自己重建，不入库）
 modules/family-digest-sync/var/
+
+# skill4 运行期存储（chain_smoke 会写到项目根 var/，他们的 .gitignore 只挡了模块内）
+var/
