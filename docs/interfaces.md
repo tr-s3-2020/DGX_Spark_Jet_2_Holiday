@@ -37,6 +37,7 @@ UTF-8 JSON；拒绝额外字段。上游若有 speaker/timestamp 等字段，应
 | response.mode | passthrough/health_care/medication_safety | 路由模式 |
 | response.text | string/null | 模板回复；passthrough 固定 null |
 | metadata.semantic_backend | none/mock/qwen | 未调用语义模型为 none |
+| metadata.degraded | boolean，始终存在 | 两次语义尝试失败才为 true；成功、重试恢复和安全阻断为 false |
 | metadata.qwen_called | boolean | 是否尝试调用 Qwen；超时也为 true，阻断为 false |
 | metadata.latency_ms | number，毫秒 | 实测安全检查、模型与重试耗时，非固定值 |
 
@@ -46,7 +47,7 @@ UTF-8 JSON；拒绝额外字段。上游若有 speaker/timestamp 等字段，应
   "health_signal":{"type":"symptom","detail":"下肢沉重/乏力","severity":"moderate"},
   "safety":{"blocked":false,"rule_id":null},
   "response":{"mode":"health_care","text":"听起来您今天提到下肢沉重、没什么力气，确实有些不舒服。您平时该吃的药都按原来的安排吃了吗？"},
-  "metadata":{"semantic_backend":"mock","qwen_called":false,"latency_ms":1.0}
+  "metadata":{"semantic_backend":"mock","qwen_called":false,"degraded":false,"latency_ms":1.0}
 }
 ```
 
@@ -57,7 +58,7 @@ UTF-8 JSON；拒绝额外字段。上游若有 speaker/timestamp 等字段，应
 - partial 或空文本：Python 返回 `None`；HTTP 200 `{"status":"ignored","reason":"partial_or_empty"}`。不执行 safety 或模型。
 - 缺必填字段、类型错误：Python Pydantic `ValidationError`；HTTP 422，FastAPI 标准 `{"detail":[...]}`。例如仅提交 `{"text":"你好"}`。
 - 安全门异常：Python `RuntimeError`；HTTP 503 `{"detail":"Safety gate unavailable"}`。不调用语义模型，不自动放行至普通生成。
-- 模型 HTTP/超时错误或 JSON 校验失败：最多两次尝试后按需求降级为 none/空 detail/low，HTTP 仍为 200，记录不含原文的警告。当前返回协议没有独立降级标志，下游不能据此认定用户没有健康问题。
+- 模型 HTTP/超时错误或 JSON 校验失败：最多两次尝试后按需求降级为 none/空 detail/low，HTTP 仍为 200，记录不含原文的警告。输出 `metadata.degraded=true`，下游按“未获取到结果”处理。正常无信号、重试恢复和用药阻断时该值为 false；即使正常无信号，也不代表健康正常。
 - `SEMANTIC_BACKEND=qwen` 但未填模型名称：构造 Settings 失败，服务启动失败。
 
 ## 超时 / 重试责任
@@ -81,4 +82,13 @@ python -m implicit_health_triage.task2.cli '我降压药今天能不能吃两颗
 
 ## 任务四消费边界
 
-直接读取 `TriageOutput.health_signal`；type=none 时没有结构化健康内容。任务四可关联 session_id/turn_id 并自行添加采集时间戳。任务二不提供新版 `to_digest_record` 或摘要写入入口，不承诺 P0/P1/P2 转换。需任务四负责人确认枚举与接收方式后再联调。
+传递完整 `TriageOutput`，不要只投影 health_signal。任务四需同时读取 safety.blocked 和 metadata.degraded；type=none 时以 degraded 区分正常无信号与提取失败。任务四可关联 session_id/turn_id 并自行添加采集时间戳。旧版 `implicit_health_triage.integration.to_digest_record` 确实存在，但只接收旧中文协议的 TriageResult；它不保留 safety/response/metadata/关联 ID，且旧 type=无 返回 None。新版没有同名转换入口，任务四应接收完整 TriageOutput。任务二不提供摘要写入入口，不承诺 P0/P1/P2 转换。任务四原适配器的对接验证见下方反馈文档。
+
+
+## Schema 与降级字段版本说明（2026-09-28）
+
+新版机器协议：[TriageOutput](../modules/implicit-health-triage/schemas/task2/TriageOutput.schema.json)、[TriageInput](../modules/implicit-health-triage/schemas/task2/TriageInput.schema.json)。
+模块 schemas 根目录的旧中文 JSON Schema 仅供 legacy 兼容，详见[版本索引](../modules/implicit-health-triage/schemas/README.md)。
+metadata.degraded 为新版输出必填布尔值；旧报文缺失时表示未知，不能默认理解为未降级。
+忽略与错误返回保持原结构；不根据 metadata.semantic_backend/qwen_called 推断成功与否。
+任务四对接说明见[反馈文档](to-d-interface-feedback.md)。

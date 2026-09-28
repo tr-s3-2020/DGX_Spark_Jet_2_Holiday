@@ -8,6 +8,7 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 - [团队协作指南](团队协作指南.md)：分工、分支、PR 和完成标准。
 - [模块架构](docs/architecture.md)：模块范围、数据流和集成边界。
 - [任务二接口约定](docs/interfaces.md)：输入输出、异常、超时及下游责任。
+- [给任务四的最新反馈](docs/to-d-interface-feedback.md)：degraded 字段、完整报文交接和 legacy 接口说明。
 - [任务二交接与资源登记](docs/task2-handoff.md)：实现状态、验证证据、待办和 DGX 资源。
 - [任务二使用说明](docs/task2-readme.md)：安装、Python/HTTP 调用和 Qwen 切换。
 - [接口样例](examples/implicit-health-triage.json)：可检查的输入与预期输出。

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "reason": {
+      "const": "partial_or_empty",
+      "default": "partial_or_empty",
+      "title": "Reason",
+      "type": "string"
+    },
+    "status": {
+      "const": "ignored",
+      "default": "ignored",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "title": "IgnoredOutput",
+  "type": "object",
+  "x-source": "implicit_health_triage.task2.schemas.IgnoredOutput"
+}

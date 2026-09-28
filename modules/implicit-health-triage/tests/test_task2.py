@@ -75,6 +75,7 @@ async def test_blocked_input_never_calls_qwen(text, rule):
     assert out.metadata.semantic_backend == "none"
     assert not out.metadata.qwen_called
     assert spy.calls == []
+    assert out.metadata.degraded is False
 
 
 @pytest.mark.parametrize(
@@ -135,6 +136,7 @@ async def test_mock_three_field_contract(text, kind, mode):
     assert out.health_signal.type == kind
     assert out.response.mode == mode
     assert out.metadata.semantic_backend == "mock" and not out.metadata.qwen_called
+    assert out.metadata.degraded is False
     if kind == "symptom":
         assert out.health_signal.model_dump() == {
             "type": "symptom",
@@ -179,6 +181,7 @@ async def test_exactly_one_retry_and_fallback(first):
     assert len(spy.calls) == 2 and FEW_SHOT in spy.calls[1]
     assert out.health_signal == none_signal()
     assert out.metadata.qwen_called
+    assert out.metadata.degraded is True
 
 
 async def test_retry_recovers():
@@ -186,6 +189,7 @@ async def test_retry_recovers():
     engine = HealthTriageEngine(spy, "qwen", SafetyGate(False))
     out = await engine.triage(NormalizedTurn(session_id="s", turn_id="t", text="头痛"))
     assert len(spy.calls) == 2 and out.response.mode == "health_care"
+    assert out.metadata.degraded is False
 
 
 async def test_real_colang_action_agrees_with_policy_and_concurrent_requests():

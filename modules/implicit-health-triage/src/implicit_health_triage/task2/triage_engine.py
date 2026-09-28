@@ -26,6 +26,7 @@ class HealthTriageEngine:
         decision = await self.safety_gate.evaluate(turn.text)
         signal = none_signal()
         calls = 0
+        degraded = False
         if not decision.blocked:
             for attempt in range(2):
                 calls += 1
@@ -40,8 +41,10 @@ class HealthTriageEngine:
                     signal = parsed
                     break
             else:
+                degraded = True
                 logger.warning("Semantic analysis failed after two attempts; returning none signal")
         metadata = TriageMetadata(
+            degraded=degraded,
             semantic_backend=self.backend if calls else "none",
             qwen_called=self.backend == "qwen" and calls > 0,
             latency_ms=round((perf_counter() - start) * 1000, 3),
