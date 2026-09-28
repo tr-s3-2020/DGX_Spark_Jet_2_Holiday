@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""契约级联调校验：Skill 一的真实输出 vs 任务二接口约定 vs 任务三 JSON Schema。
+"""契约级联调校验：Skill 一的真实输出 vs 任务二接口约定 vs 第三项 JSON Schema。
 
-背景：`integration/skills-1-2-3` 合并了三个分支，但任务二（implicit-health-triage）
-和第三项（life-memoir-retriever）目前**只有契约文档，没有可运行实现**——任务二的
-代码"待入库"，第三项入库的是 SKILL.md + JSON Schema + 冒烟脚本。所以还做不到
-三边真实服务联调，这里先做**契约级校验**，把协议不一致拦在实现入库之前。
+背景：`integration/skills-1-2-3-4` 合并四个 skill 分支。写这个测试时任务二
+（implicit-health-triage）只有接口文档、代码"待入库"，所以先做**契约级校验**，
+把协议不一致拦在实现入库之前。后来四个 skill 的实现都已入库并联通
+（见 modules/orchestrator/），本测试保留作为最轻量的协议回归。
 
 校验三件事：
   1. Skill 一的 final 文本能构造出任务二 `TriageInput` 要求的四个字段

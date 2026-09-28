@@ -30,7 +30,7 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 
 ## 联调分支
 
-`integration/skills-1-2-3` 合并以上四个分支用于串联验证。任务二只有接口文档
+`integration/skills-1-2-3-4` 合并以上四个分支用于串联验证。任务二只有接口文档
 （实现待入库），所以目前先做**契约级校验**：用 Skill 一的真实输出去比对任务二的
 输入输出约定和任务三的 JSON Schema。见
 `modules/elderly-voice-duplex/skills/elderly_voice_duplex/tests/test_integration_contract.py`。
