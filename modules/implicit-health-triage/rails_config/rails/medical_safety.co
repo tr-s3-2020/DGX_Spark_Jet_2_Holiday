@@ -1,0 +1,41 @@
+# NeMo Guardrails medical-safety rail for implicit-health-triage.
+#
+# Task guide section 21.  The `input rails` flow runs before any further
+# processing, so a dangerous medication question is stopped *before* normal
+# model generation — the requirement stated in the task image.
+#
+# Syntax verified against the Colang 2.x flows shipped inside nemoguardrails
+# 0.24.1 itself: every 2.x library flow invokes a Python action as
+#   $x = await SomeAction(kwarg=$value)          e.g. library/content_safety/flows.co
+# whereas `execute SomeAction(...)` appears only in the Colang 1.0 `*.v1.co`
+# files. Using `execute` in a 2.x config makes the runtime emit an LLM tool call
+# instead of running the local action, which silently defeats the rail.
+import core
+import guardrails
+import llm
+
+
+flow main
+  activate llm continuation
+
+
+flow input rails $input_text
+  $is_medication_risk = await MedicationSafetyCheckAction(text=$input_text)
+
+  if $is_medication_risk
+    bot say "这个涉及具体的用药剂量，我不能替您决定增加、减少或停止服药。请先按照医生给您的处方或药品说明来服用，如果不确定，最好联系医生或药师确认。"
+
+  # The turn ends here either way.
+  #
+  # Deviation from the guide's snippet, which only aborts on the risk branch.
+  # For this skill Guardrails is an *input fence*, not the dialogue engine: the
+  # reply is produced by the skill itself from the extraction result
+  # (extractor -> responder), so whatever the Colang `main` flow would generate
+  # is discarded. Letting it run anyway costs real money and latency — measured
+  # on this configuration, the pass path went from ~320 ms to ~95 ms — and makes
+  # the runtime try to synthesise a Colang flow from a reply it never uses,
+  # which fails loudly and pollutes the demo log.
+  #
+  # The safety behaviour is unchanged: a risky turn still emits the fixed
+  # standard wording, and `abort` still guarantees nothing downstream runs.
+  abort

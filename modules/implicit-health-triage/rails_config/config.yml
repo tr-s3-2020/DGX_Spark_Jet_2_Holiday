@@ -1,0 +1,30 @@
+# NeMo Guardrails configuration for the implicit-health-triage skill.
+#
+# Task guide section 19.  Colang 1.0 is still the library default, so the
+# version MUST be declared explicitly here (verified against nemoguardrails
+# 0.24.1 docs / PyPI: "Two versions of Colang, 1.0 and 2.0, are supported and
+# Colang 1.0 is the default").
+colang_version: "2.x"
+
+# The concrete backend is chosen by the team for the DGX Spark demo and is
+# injected from the environment by
+# implicit_health_triage.guardrails_runtime.GuardrailsRuntime, which resolves
+# the ${...} placeholders below before handing the config to RailsConfig.
+# Nothing here hard-codes an unconfirmed model name (sections 19, 47).
+models:
+  - type: main
+    engine: "${GUARDRAILS_ENGINE}"
+    model: "${GUARDRAILS_MODEL}"
+
+# The Colang 2.x runtime builds a semantic index over the configured flows when
+# `llm continuation` is active.  The default engine is `fastembed`, which pulls
+# in onnxruntime — a native dependency this skill's safety fence does not need
+# (and which aborts on some hosts).  `iht_hashing` is a pure-Python
+# deterministic embedder registered by
+# implicit_health_triage.guardrails_embeddings.register().
+core:
+  embedding_search_provider:
+    name: default
+    parameters:
+      embedding_engine: iht_hashing
+      embedding_model: iht-hashing

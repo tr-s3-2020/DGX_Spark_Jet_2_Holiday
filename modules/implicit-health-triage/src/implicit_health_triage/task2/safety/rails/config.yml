@@ -1,0 +1,8 @@
+colang_version: "2.x"
+models: []
+core:
+  embedding_search_provider:
+    name: default
+    parameters:
+      embedding_engine: iht_hashing
+      embedding_model: iht-hashing
