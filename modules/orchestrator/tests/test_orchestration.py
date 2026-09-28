@@ -47,6 +47,11 @@ class FakeMemory:
         self.prepare_result = prepare_result or {
             "status": "ok", "data": {"memories": [], "match_status": "empty"}}
         self.closed = False
+        self.started = False
+
+    async def start(self):  # noqa: D102
+        self.started = True
+        return self
 
     async def execute(self, operation, request, principal):  # noqa: D102
         self.calls.append((operation, request))

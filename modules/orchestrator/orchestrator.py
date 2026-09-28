@@ -121,6 +121,7 @@ class Orchestrator:
         self.use_llm = use_llm
         self.session_id = f"s-{uuid.uuid4().hex[:12]}"
         self.turn_no = 0
+        self._session_version = None      # close_session 的必填字段
         self._triage = None
         self._memory = None
         self._digest = None
@@ -140,7 +141,17 @@ class Orchestrator:
             from life_memoir.service import MemoryService
             settings = Settings(
                 storage_path=os.path.join(PROJECT, ".cache", "orchestrator",
-                                          "memory.sqlite3"))
+                                          "memory.sqlite3"),
+                # 默认的 fixture 后端只认文档里的 demo 句子，提不出真记忆；
+                # 联调要打真 Qwen 才能验证"AI 能记住老人"。
+                backend="chat_completions",
+                base_url=os.environ.get("EVD_LLM_BASE",
+                                        "http://127.0.0.1:8000/v1"),
+                model=os.environ.get("EVD_LLM_MODEL", "qwen3.6-35b-a3b"),
+                location="local",
+                # 这个模型的思考很长，默认 20s 单次 / 45s 总预算会把提炼
+                # 打成 MODEL_TIMEOUT（实测），放到上限。
+                timeout_seconds=120, total_budget_seconds=300)
             os.makedirs(os.path.dirname(settings.storage_path), exist_ok=True)
             self._memory = MemoryService(settings)
             self._memory_principal = Principal(
@@ -174,7 +185,9 @@ class Orchestrator:
 
     async def start(self):
         """接通电话：开 session、授权、清空轮次计数。"""
-        self.memory()                      # 先建服务，否则 _mem_call 拿到 None
+        # 必须先 start()：它负责创建 scheduler 任务。漏了的话后台提炼 job
+        # 永远停在 queued，最后全部 QUEUE_TIMEOUT，记忆一条都不产出。
+        await self.memory().start()
         await self._mem_call("set_policy", user_id=self.elder_id,
                              expected_version=0, consent_ref="consent",
                              grants={"long_term_memory": True,
@@ -185,15 +198,48 @@ class Orchestrator:
                              session_id=self.session_id, locale=self.locale)
         self.turn_no = 0
 
-    async def close(self):
-        """挂断：关 session（触发 skill3 的后台提炼），再关服务。"""
+    async def close(self, drain_seconds: float = 90.0):
+        """挂断：关 session（触发 skill3 的后台提炼），等提炼跑完再收摊。
+
+        两步都是必需的：
+        1. `expected_session_version` 是 close_session 的必填字段，不传会
+           VALIDATION_ERROR，提炼 job 根本不会被创建；
+        2. 提炼是**后台 job**，发完 close_session 就 close() 会把 scheduler
+           一起取消，job 永远停在 queued（实测 4 个 job 全卡住）。
+        """
+        if self._memory is None:
+            return
+        version = self._session_version
         try:
-            await self._mem_call("close_session", session_id=self.session_id,
-                                 reason="completed")
+            if version is not None:
+                await self._mem_call("close_session",
+                                     session_id=self.session_id,
+                                     expected_session_version=version,
+                                     reason="completed")
         except Exception as exc:  # noqa: BLE001
-            pass
-        if self._memory is not None:
-            await self._memory.close()
+            print(f"[warn] close_session 失败: {exc}")
+        # 等后台提炼跑完（有上限，不能让老人等着挂电话）
+        await self._drain_jobs(drain_seconds)
+        await self._memory.close()
+
+    async def _drain_jobs(self, budget: float):
+        """轮询 skill3 的 job，直到没有 running/queued 或超时。"""
+        import time
+        deadline = time.monotonic() + budget
+        while time.monotonic() < deadline:
+            try:
+                res = await self._mem_call("list_jobs", user_id=self.elder_id)
+                jobs = (res.get("data") or {}).get("items") or []
+            except Exception as exc:  # noqa: BLE001
+                print(f"[warn] 读 job 状态失败: {exc}")
+                return
+            pending = [j for j in jobs
+                       if j.get("state") in ("running", "queued")]
+            if not pending:
+                return
+            await asyncio.sleep(1.0)
+        print(f"[warn] 后台提炼 {budget:.0f}s 内没跑完，仍有 "
+              f"{len(pending)} 个 job 未完成")
 
     # ------------------------------------------------------------ 一轮通话
 
@@ -226,6 +272,10 @@ class Orchestrator:
             data = prepared.get("data") or {}
             out.memories = data.get("memories") or []
             out.match_status = data.get("match_status", "")
+            # close_session 要的 expected_session_version 从这里拿
+            obs = data.get("observation") or {}
+            if obs.get("session_version") is not None:
+                self._session_version = obs["session_version"]
             out.events.append(
                 f"skill3_memories={len(out.memories)}"
                 + (f"({out.match_status})" if out.match_status else ""))
