@@ -1,0 +1,37 @@
+name: Task 2 Python compatibility
+on:
+  pull_request:
+    paths:
+      - 'modules/implicit-health-triage/**'
+      - '.github/workflows/task2-python.yml'
+  push:
+    branches: [master, docs/task2-collaboration-handoff]
+    paths:
+      - 'modules/implicit-health-triage/**'
+      - '.github/workflows/task2-python.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13']
+    defaults:
+      run:
+        working-directory: modules/implicit-health-triage
+    env:
+      NEMO_GUARDRAILS_NO_USAGE_STATS: '1'
+      SEMANTIC_BACKEND: mock
+      LLM_PROVIDER: mock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '${{ matrix.python }}'
+      - run: python -m pip install -e '.[dev]'
+      - run: python -c "from implicit_health_triage import logging_utils, integration; from implicit_health_triage.task2 import ImplicitHealthTriageSkill"
+      - run: python -m pytest -q
+      - run: python scripts/export_task2_schemas.py --check

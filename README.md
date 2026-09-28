@@ -32,3 +32,5 @@ uvicorn implicit_health_triage.task2.api:app --host 127.0.0.1 --port 8080
 ```
 
 Windows 命令及输入输出见[使用说明](docs/task2-readme.md)。默认 Mock；本地 Qwen 接口已预留，真实模型和完整项目联调尚未验证。
+
+- [Python 3.10 兼容修复回执](docs/task2-python310-feedback.md)：UTC 修复、实测结果及多版本 CI。

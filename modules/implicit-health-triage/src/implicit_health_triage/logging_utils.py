@@ -17,7 +17,7 @@ import json
 import logging
 import sys
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .settings import get_settings
@@ -50,7 +50,7 @@ class TurnLogRecord:
     """One observable decision record (section 51)."""
 
     module: str = MODULE_NAME
-    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
     session_id: str | None = None
     turn_id: str | None = None
     input_length: int = 0

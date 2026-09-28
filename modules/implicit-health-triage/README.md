@@ -8,7 +8,7 @@
 
 ## 1. 快速启动
 
-建议使用 Python 3.11。项目声明支持 Python 3.10–3.13，本次验证使用 3.11.7。除首次 `cd` 外，安装、测试和启动命令均在 `modules/implicit-health-triage/` 执行。
+建议使用 Python 3.11。项目声明支持 Python 3.10–3.13，已验证 3.10.19 与 3.11.7；2026-09-29 的 Python 3.10 全量回归为 498 项通过。除首次 `cd` 外，安装、测试和启动命令均在 `modules/implicit-health-triage/` 执行。
 
 已有虚拟环境的 Windows 项目：
 
@@ -258,3 +258,7 @@ partial/空文本仍返回 ignored，不附 metadata；安全门异常仍返回 
 不携带 safety、response、metadata、会话/轮次 ID，且旧 type=无 返回 None。它不能作为任务四唯一数据源，也不接受新版 TriageOutput。
 
 这是输出字段扩展；严格拒绝额外字段的消费方须更新其 Schema。任务四现有适配器已识别 metadata.degraded。
+
+## Python 3.10 兼容修复（2026-09-29）
+
+logging_utils.py 与 integration.py 已改用 timezone.utc，修复 datetime.UTC 导入失败。UTC 时间戳格式不变；CI 新增 Python 3.10–3.13 矩阵，远程运行状态以 GitHub Actions 为准。
