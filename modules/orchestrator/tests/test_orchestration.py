@@ -22,9 +22,7 @@ import sys
 
 import pytest
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
-
+# 路径由 conftest.py 提前补好，这里直接 import
 from orchestrator import Orchestrator, _json_safe  # noqa: E402
 
 DOSE = "我那个降压药今天能不能吃两颗？"
