@@ -1,6 +1,5 @@
 # 任务四：家属摘要同步 `family-digest-sync`
 
-**负责人**：Zoe（成员 4）　**分支**：`zoe-module-4`　**日期**：2026-09-28
 
 一句话：**别人判断"老人有没有事"，我决定"告不告诉家属、什么时候告诉、说到什么程度"。**
 
@@ -70,6 +69,4 @@ python scripts/live_b_to_d.py
 ## 待确认（需要群里拍板）
 
 1. **给 B**：新版 `TriageResult` 请加 `degraded: bool`（或保留 `metadata`）。没有它，D 分不清"正常跑完没信号"和"模型挂了被降级"，只能在每次降级时对家属说"本次未能获取"——家属会习惯性忽略日报。D 这边接口已预留，B 一加即生效。
-2. **给 B**：`docs/interfaces.md` 与代码有四处不一致（详见回执第 5 节），其中 `to_digest_record` 会丢 `guardrail_triggered`，那是 P0 的源头之一。
-3. **给全队**：仍然**没有人写主控编排**。A/B/C/D 是四个独立进程/协议，目前只有 B→D 是我主动跑通的。要出端到端 demo 必须先有 host。
-4. **赛事信息**尚未核实（黑客松、截止日期、提交清单）。
+2. **给 B**：`docs/interfaces.md` 与代码有四处不一致（详见回执第 5 节），其中 `to_digest_record` 会丢 `guardrail_triggered`，那是 P0 的源头之一。。
