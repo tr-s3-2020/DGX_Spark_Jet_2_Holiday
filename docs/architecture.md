@@ -39,4 +39,4 @@ Qwen、Mock、Colang、NeMo Guardrails、Python Policy、Parser、ResponseBuilde
 
 ## 状态
 
-任务二拟入库路径为 `modules/implicit-health-triage/`；本地实现已完成，需后续代码 PR 入库。跨模块调用、任务四对枚举的消费、真实 Qwen 和 DGX 环境均待联调。当前不存在已验证的完整项目启动入口。
+任务二实现已放入 `modules/implicit-health-triage/`，等待 PR 审查合并。跨模块调用、任务四对枚举的消费、真实 Qwen 和 DGX 环境均待联调。当前不存在已验证的完整项目启动入口。

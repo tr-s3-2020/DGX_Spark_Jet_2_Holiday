@@ -36,8 +36,9 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 
 ## 当前状态
 
-本次提交补充协作文档和接口样例，不迁入模块代码。远程 `master` 的基线是 `738cf25`，
-仅包含 README 和协作指南；任务二代码已在本地完成并验证，但尚未进入本仓库。
+2026-09-28：任务二代码、依赖、Colang 配置、测试、CLI 和样例已迁入 `modules/implicit-health-triage/`，由本 PR 提交，等待团队审查合并。本次不填写其他模块实现状态。
+
+
 
 默认分支为 `master`；日常改动走任务分支与 PR，至少由另一名成员检查后合并。
 
@@ -58,7 +59,7 @@ ASR/TTS 后端可选 `funasr`（Paraformer）/ `edge`（edge-tts）/ `nemo`（Ne
 
 ### 任务二（健康探针）
 
-**要求先实现入库，当前文档分支无法直接运行。**
+代码位于 [modules/implicit-health-triage/](modules/implicit-health-triage/README.md)，可按以下命令安装运行。
 
 ```bash
 cd modules/implicit-health-triage

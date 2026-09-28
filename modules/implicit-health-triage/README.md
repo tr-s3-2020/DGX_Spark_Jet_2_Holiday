@@ -225,7 +225,7 @@ TRIAGE_GUARDRAILS_ENABLED=true
 
 关键验收：使用调用计数器断言 BLOCK 后模型调用次数为 **0**，而不只是检查 `qwen_called` 字段。
 
-本地测试证据与仓库集成状态见 [交接状态](task2-handoff.md)。
+本地测试证据与仓库集成状态见 [交接状态](../../docs/task2-handoff.md)。
 
 ## 8. 范围与兼容关系
 

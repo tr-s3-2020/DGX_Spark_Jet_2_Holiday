@@ -7,7 +7,7 @@
 - 提供方 / 负责人：任务二 `implicit-health-triage` / **Yunsheng**。
 - 调用方 / 负责人：主对话系统及任务一（输入）、任务四（结果消费）/ 待团队指定。
 - 调用方式与入口：首选进程内 `await skill.handle(TriageInput(...))`，导入 `from implicit_health_triage.task2 import ImplicitHealthTriageSkill, TriageInput`。HTTP 可选 `POST /v1/implicit-health-triage`。
-- 仓库拟放置目录：`modules/implicit-health-triage/`；本次只有协议文档，模块代码待入库。
+- 仓库目录：`modules/implicit-health-triage/`，代码随本 PR 提交。
 
 ## 输入字段和示例
 
@@ -70,7 +70,7 @@ Python 3.11 已验证；依赖清单声明 3.10–3.13。FastAPI、Pydantic 2、
 
 ## 最小验证方法
 
-先入库代码，再进入模块目录安装依赖：
+进入 `modules/implicit-health-triage/`，按 README 安装依赖后执行：
 
 ```bash
 python -m pytest tests/test_task2.py -q
