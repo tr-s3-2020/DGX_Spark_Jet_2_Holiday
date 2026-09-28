@@ -16,38 +16,36 @@ from enum import Enum
 
 # ------------------------------------------------------------------ 角色设定
 
-SYSTEM_PROMPT = """You are "Buddy", an AI companion for an elderly person living alone.
+SYSTEM_PROMPT = """你是"小伴"，一位陪伴独居老人的 AI 家人。
 
-How you speak:
-- Short sentences, slow pace, one thing at a time -- then leave room for them
-- Warm and familiar, like a grandchild on the phone. Never condescending.
-- When they pause mid-sentence, don't rush them and don't finish their thought
-- Never interrupt, never correct their wording, never argue
-- Remember what they told you before and pick it up naturally
-  ("You said your legs felt heavy yesterday -- any better today?")
+说话方式：
+- 语速慢、句子短，一次只说一件事，说完留时间给老人接
+- 用"您"，像晚辈对长辈那样温和，不居高临下
+- 老人说话停顿时不要急，更不要替他把话说完
+- 不打断、不纠正老人的口误，不和他们争辩
+- 记得老人之前说过的事，自然地接上（"您昨天说腿沉，今天好些没？"）
 
-Never do:
-- Give any diagnosis, dosage, or treatment advice. If they ask, gently steer
-  away and suggest calling their family or their doctor.
-- Say "you should" or "you must", or criticise their habits
-- Invent things you don't remember -- say so and ask them to tell you again
+绝对不做：
+- 不给任何诊断、用药剂量、治疗方案建议；老人问起就温和转开，建议联系子女或社区医生
+- 不说"您应该/必须"，不批评老人的生活习惯
+- 不编造自己记不住的事，忘了就说忘了，请老人再讲一遍
 """
 
 # ------------------------------------------------------- 在想词 vs 已说完
 
 # 老人卡在词上时的典型口头填充。注意都是"话没说完"的信号。
 HESITATION_MARKERS = (
-    "um", "uh", "er", "ah", "hmm", "mm",
-    "well", "you know", "i mean", "like",
-    "let me think", "how do i say", "sort of", "kind of",
-    "the thing is", "what's it called",
+    "嗯", "呃", "啊", "诶", "唉", "哦",
+    "这个", "那个", "就是", "就是说", "怎么说", "我是说",
+    "然后呢", "后来呢", "我想想", "让我想想", "我寻思",
+    "反正", "其实吧", "对了",
 )
 
 # 这些词出现时，通常是在换话题/收尾，而不是卡住。
-TOPIC_SHIFT_MARKERS = ("by the way,", "also", "another thing")
+TOPIC_SHIFT_MARKERS = ("对了，", "还有", "另外", "话说")
 
-_SENT_END = tuple(".!?")
-_CLAUSE_END = tuple(",;:")
+_SENT_END = tuple("。！？!?…~；;")
+_CLAUSE_END = tuple("，,、")
 
 # 结尾是这些，说明话头断了
 _TRAILING = ("...", "…", "--")
@@ -81,15 +79,13 @@ class HesitationScorer:
     def _marker_hit(self, text: str) -> str | None:
         """返回命中的填充词（取最靠后的那个，最接近当下状态）。
 
-        必须按**词边界**匹配，不能裸子串：英文里 "er" 会命中 groceries/water/
-        dinner/her/never 这类极常见的 -er 结尾词，实测就这样把一句完整的话
-        误判成"还在想词"，导致该收轮时没收轮、回答为空。
+        中文标记用子串匹配即可；但如果 markers 里混了英文短标记（um/er/ah），
+        必须按词边界匹配，否则 groceries/water/dinner 这类 -er 结尾词会被
+        误判成"还在想词"（实测过，导致该收轮时没收轮、回答为空）。
         """
         tail = text[-24:]
         hit = None
         for m in self.markers:
-            # \b 对中文无效，但中文标记本身不会出现这种子串问题；
-            # 英文短标记（um/uh/er/ah…）必须靠词边界才安全
             pattern = (r"\b" + re.escape(m) + r"\b"
                        if re.match(r"^[A-Za-z]", m) else re.escape(m))
             match = None
@@ -109,27 +105,30 @@ class HesitationScorer:
         if text.endswith(_TRAILING):
             return self._thinking(f"结尾是省略号：{text[-8:]!r}")
 
-        # 2) 结尾撞上填充词 -> 在想词
-        marker = self._marker_hit(text)
-        if marker is not None:
-            return self._thinking(f"结尾是填充词 {marker!r}")
-
-        # 3) 有句末标点 -> 说完了
+        # 2) 有句末标点 -> 说完了。
+        #    必须放在填充词判断之前："我那个降压药今天能不能吃两颗？" 里的
+        #    "那个"是限定词不是填充词，若先判填充词会把这句话误判成"还在想词"，
+        #    该收轮时不收轮、医疗围栏也不会触发（实测踩到过）。
         if text.endswith(_SENT_END):
             self._streak = 0
             return TurnJudgement(TurnSignal.COMPLETE, "有句末标点")
 
-        # 只到逗号/顿号：可能是长句中间的长停顿，倾向等一等
+        # 3) 结尾撞上填充词 -> 在想词
+        marker = self._marker_hit(text)
+        if marker is not None:
+            return self._thinking(f"结尾是填充词 {marker!r}")
+
+        # 4) 只有逗号/顿号：可能是长句中间的长停顿，倾向等一等
         if text.endswith(_CLAUSE_END):
             return TurnJudgement(
                 TurnSignal.UNCERTAIN,
-                f"only a pause mark: {text[-8:]!r}",
-                filler="Go on, I'm listening.")
+                f"只到停顿标点：{text[-8:]!r}",
+                filler="诶，您说。")
 
         # 5) 太短，信息不足
         if len(text) <= 3:
-            return TurnJudgement(TurnSignal.UNCERTAIN, "utterance too short",
-                                 filler="Mm-hm, I'm here.")
+            return TurnJudgement(TurnSignal.UNCERTAIN, "发言过短",
+                                 filler="嗯，我在听。")
 
         # 6) 换话题词开头且前面有完整句 -> 说完
         self._streak = 0
@@ -138,26 +137,25 @@ class HesitationScorer:
     def _thinking(self, reason: str) -> TurnJudgement:
         self._streak += 1
         if self._streak < self.min_hits:
-            return TurnJudgement(TurnSignal.UNCERTAIN, f"{reason} (first time)",
+            return TurnJudgement(TurnSignal.UNCERTAIN, f"{reason}（首次）",
                                  filler=None)
         return TurnJudgement(TurnSignal.THINKING, reason,
-                             filler="Take your time, I'm right here.")
+                             filler="诶，您慢慢想，我等您。")
 
 
 # ------------------------------------------------------------------ 垫音生成
 
-FILLER_PROMPT = """An elderly person is talking to you and has stopped mid-sentence,
-clearly still searching for a word.
+FILLER_PROMPT = """老人在和你说话，说到一半停住了，明显还在想词。
 
-What they just said:
+老人刚说的内容：
 "{partial}"
 
-Produce one very short acknowledgement ({max_chars} characters or fewer) that
-tells them you're in no hurry.
-- Output only that one line. No explanation, no quotes.
-- Natural, like a grandchild acknowledging on the phone
-- Do NOT finish their sentence for them, and do NOT ask a question
-- Style examples: "Take your time." / "I'm listening." / "No rush at all."
+请生成一句很短的接应话（{max_chars} 字以内），目的是告诉老人"我不急，你慢慢想"。
+要求：
+- 只输出这一句话，不要解释、不要引号、不要标点堆砌
+- 语气自然，像家里晚辈在电话里应一声
+- 不要替老人把话接下去，不要提问
+- 示例风格："诶，您慢慢想。" / "嗯，我在听呢。" / "不着急，您想着说。"
 """
 
 
@@ -169,42 +167,31 @@ def build_filler_prompt(partial: str, max_chars: int) -> str:
 # 用户 spec 里用 NeMo Guardrails + Colang 做生成前拦截。这里先落一层
 # 确定性的关键词/正则预过滤：命中就直接返回标准话术，根本不进模型。
 # 好处是零依赖、可单测、行为确定；Guardrails 后续可作为第二层叠加。
-#
-# 设计要点：P0 匹配的是**剂量模式**而不是药名。实测 ASR 会把
-# "blood pressure pills" 听成近音词，但只要"can I take two ... pills"这个
-# 剂量问法在，围栏就照样拦得住——药名同音字替换不会让它失效。
 
 SAFETY_PATTERNS: tuple[tuple[str, str], ...] = (
-    # P0: 自行增减剂量 / 停药
-    (r"(can|could|should) i (take|have) (two|three|2|3|double|extra)", "P0"),
-    (r"(double|increase|up) my (dose|dosage|pills|medication)", "P0"),
-    (r"(stop|quit) (taking )?(my )?(pills|medication|insulin)", "P0"),
-    (r"(skip|missed) my (dose|pills|medication)", "P0"),
-    # P0: 急症
-    (r"chest (pain|pressure|tight)|can'?t breathe|shortness of breath", "P0"),
-    (r"(arm|face|leg) (is )?numb|my mouth (is |'s )?(crooked|drooping)", "P0"),
-    (r"(fell|fallen) (down|over)|can'?t get up", "P0"),
-    # P1: 体征不适
-    (r"(dizzy|light.?headed|headache|nauseous|stomach ?ache)", "P1"),
-    (r"(legs?|feet) (feel |felt )?(heavy|swollen|weak)", "P1"),
-    (r"(couldn'?t|cannot|can'?t) sleep|no sleep last night", "P1"),
-    (r"(feel|feeling) (tired|exhausted|unwell|off)", "P1"),
+    # (正则, 分级)
+    (r"(能不能|可不可以|能|可以).{0,6}(吃|服|用).{0,4}(两|三|2|3|双).{0,3}(片|颗|粒|丸)", "P0"),
+    (r"(加倍|加量|多服|多吃).{0,4}(药|片|颗)", "P0"),
+    (r"(停[药止]|不吃了|断了).{0,4}(药|胰岛素|降压)", "P0"),
+    (r"(胸[口]?(痛|疼|闷|压)|喘不上气|呼吸困难|心慌得厉害|出冷汗|半边.{0,3}麻|嘴歪)", "P0"),
+    (r"(摔|跌).{0,4}(倒|一跤|下)|起不来", "P0"),
+    (r"(头晕|头痛|恶心|肚子[痛疼]|腿[沉肿]|睡不[着着])", "P1"),
 )
 
 SAFETY_REPLIES = {
-    "P0": ("I'm not able to advise you on that, dear. Please stick with what "
-           "your doctor told you. Would you like me to call {kin} right now?"),
-    "P1": ("That doesn't sound very comfortable. Sit down and rest a moment. "
-           "Tell me how today went -- I'll make a note of it for {kin}."),
+    "P0": ("这个我不敢给您拿主意，您先按平时医生说的来。要不要现在给"
+           "{kin}打个电话？我帮您拨。"),
+    "P1": ("听着是有点不舒服。您先坐下歇会儿，缓缓神。今天觉得怎么样，"
+           "跟我说说，我记着，回头告诉{kin}。"),
 }
 
-DEFAULT_KIN = "your son"
+DEFAULT_KIN = "孩子"
 
 
 def check_safety(text: str, kin: str = DEFAULT_KIN) -> tuple[str, str] | None:
     """命中安全规则时返回 (分级, 标准话术)，否则 None。"""
     for pattern, level in SAFETY_PATTERNS:
-        if re.search(pattern, text, re.IGNORECASE):
+        if re.search(pattern, text):
             return level, SAFETY_REPLIES[level].format(kin=kin)
     return None
 
@@ -212,5 +199,4 @@ def check_safety(text: str, kin: str = DEFAULT_KIN) -> tuple[str, str] | None:
 def build_reply_prompt(partial: str, history: list[dict], kin: str) -> str:
     """主回复的系统提示（历史由调用方按 messages 传入）。"""
     return (SYSTEM_PROMPT
-            + "\n\nThe elderly person's family member to mention is called "
-            + kin + ". Use that name when you refer to them.")
+            + "\n\n老人的子女称呼为「" + kin + "」，提及家人时用这个称呼。")
