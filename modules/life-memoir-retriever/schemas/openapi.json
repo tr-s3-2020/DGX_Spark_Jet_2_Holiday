@@ -1,0 +1,1712 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Life Memoir Memory API",
+    "version": "1.0"
+  },
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/memory/users/{user_id}/policy": {
+      "put": {
+        "summary": "Set Policy",
+        "operationId": "set_policy",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPolicyHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/sessions": {
+      "post": {
+        "summary": "Open Session",
+        "operationId": "open_session",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenSessionHTTP"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/sessions/{session_id}/turns": {
+      "post": {
+        "summary": "Observe Turn",
+        "operationId": "observe_turn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObserveTurnHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/sessions/{session_id}/prepare-turn": {
+      "post": {
+        "summary": "Prepare Turn",
+        "operationId": "prepare_turn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareTurnHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/sessions/{session_id}/context": {
+      "post": {
+        "summary": "Build Context",
+        "operationId": "build_context",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuildContextHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/sessions/{session_id}/close": {
+      "post": {
+        "summary": "Close Session",
+        "operationId": "close_session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseSessionHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/jobs/{job_id}": {
+      "get": {
+        "summary": "Get Job",
+        "operationId": "get_job",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/users/{user_id}/jobs": {
+      "get": {
+        "summary": "List Jobs",
+        "operationId": "list_jobs",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "session_extract",
+                    "story_reconcile",
+                    "preference_reconcile",
+                    "context_prepare",
+                    "chronicle_build",
+                    "language_variant"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "queued",
+                    "running",
+                    "completed",
+                    "skipped",
+                    "failed",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/users/{user_id}/entries": {
+      "get": {
+        "summary": "List Entries",
+        "operationId": "list_entries",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "story",
+                    "detail",
+                    "recent",
+                    "observation",
+                    "preference"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "record_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "pending",
+                    "superseded"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Record Status"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/entries/{entry_id}": {
+      "patch": {
+        "summary": "Revise Entry",
+        "operationId": "revise_entry",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviseEntryHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/users/{user_id}/forget": {
+      "post": {
+        "summary": "Forget Entries",
+        "operationId": "forget_entries",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgetEntriesHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/users/{user_id}/chronicle": {
+      "get": {
+        "summary": "Get Chronicle",
+        "operationId": "get_chronicle",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "enum": [
+                "conversation",
+                "family_digest"
+              ],
+              "type": "string",
+              "title": "Purpose"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "structured",
+                "markdown"
+              ],
+              "type": "string",
+              "default": "structured",
+              "title": "Format"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    },
+    "/v1/memory/chronicle/events/{event_id}": {
+      "patch": {
+        "summary": "Review Chronicle Event",
+        "operationId": "review_chronicle_event",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewChronicleEventHTTP"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "event_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128
+            }
+          }
+        ],
+        "security": [
+          {
+            "HostToken": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BuildContextHTTP": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Query",
+            "default": ""
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 8
+          },
+          "max_chars": {
+            "type": "integer",
+            "maximum": 3000.0,
+            "minimum": 200.0,
+            "title": "Max Chars",
+            "default": 3000
+          },
+          "context_locale": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Context Locale",
+            "default": "original"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "conversation",
+              "family_digest"
+            ],
+            "title": "Purpose"
+          },
+          "deadline_ms": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 10.0,
+            "title": "Deadline Ms",
+            "default": 100
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "purpose"
+        ],
+        "title": "BuildContextHTTP"
+      },
+      "CloseSessionHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "expected_session_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Session Version"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "user_stopped",
+              "disconnected"
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "expected_session_version",
+          "reason"
+        ],
+        "title": "CloseSessionHTTP"
+      },
+      "Conditions": {
+        "properties": {
+          "noise": {
+            "type": "string",
+            "enum": [
+              "quiet",
+              "noisy",
+              "unknown"
+            ],
+            "title": "Noise",
+            "default": "unknown"
+          },
+          "communication_mode": {
+            "type": "string",
+            "enum": [
+              "voice",
+              "text"
+            ],
+            "title": "Communication Mode",
+            "default": "text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Conditions"
+      },
+      "ContextOptions": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Query",
+            "default": ""
+          },
+          "limit": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "default": 8
+          },
+          "max_chars": {
+            "type": "integer",
+            "maximum": 3000.0,
+            "minimum": 200.0,
+            "title": "Max Chars",
+            "default": 3000
+          },
+          "context_locale": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Context Locale",
+            "default": "original"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ContextOptions"
+      },
+      "Controls": {
+        "properties": {
+          "stop_session": {
+            "type": "boolean",
+            "title": "Stop Session",
+            "default": false
+          },
+          "skip_topic": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Topic"
+          },
+          "do_not_persist": {
+            "type": "boolean",
+            "title": "Do Not Persist",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Controls"
+      },
+      "Envelope": {
+        "properties": {
+          "api_version": {
+            "type": "string",
+            "const": "1.0",
+            "title": "Api Version",
+            "default": "1.0"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "accepted",
+              "ignored",
+              "degraded",
+              "error"
+            ],
+            "title": "Status"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "status",
+          "data",
+          "error",
+          "meta"
+        ],
+        "title": "Envelope"
+      },
+      "ForgetEntriesHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "entries",
+              "session"
+            ],
+            "title": "Scope"
+          },
+          "decision_ref": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Decision Ref"
+          },
+          "entry_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 128,
+                  "minLength": 1
+                },
+                "type": "array",
+                "maxItems": 50,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Ids"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "scope",
+          "decision_ref"
+        ],
+        "title": "ForgetEntriesHTTP"
+      },
+      "Grants": {
+        "properties": {
+          "long_term_memory": {
+            "type": "boolean",
+            "title": "Long Term Memory"
+          },
+          "profile_learning": {
+            "type": "boolean",
+            "title": "Profile Learning"
+          },
+          "family_digest": {
+            "type": "boolean",
+            "title": "Family Digest"
+          },
+          "remote_analysis": {
+            "type": "boolean",
+            "title": "Remote Analysis"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "long_term_memory",
+          "profile_learning",
+          "family_digest",
+          "remote_analysis"
+        ],
+        "title": "Grants"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ObserveTurnHTTP": {
+        "properties": {
+          "turn_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Turn Id"
+          },
+          "speaker": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Speaker"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "is_final": {
+            "type": "boolean",
+            "title": "Is Final"
+          },
+          "occurred_at": {
+            "type": "string",
+            "title": "Occurred At"
+          },
+          "text_locale": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+            "title": "Text Locale",
+            "default": "und"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Conditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_style": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResponseStyle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "controls": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Controls"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "turn_id",
+          "speaker",
+          "text",
+          "is_final",
+          "occurred_at",
+          "request_id"
+        ],
+        "title": "ObserveTurnHTTP"
+      },
+      "OpenSessionHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "user_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "session_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Session Id"
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+            "title": "Locale"
+          },
+          "reply_locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply Locale"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/Conditions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "user_id",
+          "session_id",
+          "locale"
+        ],
+        "title": "OpenSessionHTTP"
+      },
+      "PrepareTurnHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "turn": {
+            "$ref": "#/components/schemas/Turn"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ContextOptions"
+          },
+          "deadline_ms": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 10.0,
+            "title": "Deadline Ms",
+            "default": 100
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "turn"
+        ],
+        "title": "PrepareTurnHTTP"
+      },
+      "ResponseStyle": {
+        "properties": {
+          "question_form": {
+            "type": "string",
+            "enum": [
+              "open",
+              "concrete",
+              "none",
+              "unknown"
+            ],
+            "title": "Question Form",
+            "default": "unknown"
+          },
+          "tts_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 4.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tts Rate"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ResponseStyle"
+      },
+      "ReviewChronicleEventHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "expected_event_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Event Version"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm_time",
+              "correct_time",
+              "reject_inference"
+            ],
+            "title": "Action"
+          },
+          "decision_ref": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Decision Ref"
+          },
+          "resolution_version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Version"
+          },
+          "alternative_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alternative Id"
+          },
+          "time_text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Text"
+          },
+          "text_locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Locale"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "expected_event_version",
+          "action",
+          "decision_ref"
+        ],
+        "title": "ReviewChronicleEventHTTP"
+      },
+      "ReviseEntryHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Version"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "correct_content",
+              "confirm_preference",
+              "set_allowed_uses"
+            ],
+            "title": "Action"
+          },
+          "decision_ref": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Decision Ref"
+          },
+          "content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "allowed_uses": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "conversation",
+                    "family_digest"
+                  ]
+                },
+                "type": "array",
+                "maxItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Uses"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "expected_version",
+          "action",
+          "decision_ref"
+        ],
+        "title": "ReviseEntryHTTP"
+      },
+      "SetPolicyHTTP": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Version"
+          },
+          "grants": {
+            "$ref": "#/components/schemas/Grants"
+          },
+          "consent_ref": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Consent Ref"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "expected_version",
+          "grants",
+          "consent_ref"
+        ],
+        "title": "SetPolicyHTTP"
+      },
+      "Turn": {
+        "properties": {
+          "turn_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Turn Id"
+          },
+          "speaker": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Speaker"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 16000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "is_final": {
+            "type": "boolean",
+            "title": "Is Final"
+          },
+          "occurred_at": {
+            "type": "string",
+            "title": "Occurred At"
+          },
+          "text_locale": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+            "title": "Text Locale",
+            "default": "und"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Conditions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "response_style": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResponseStyle"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "controls": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Controls"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "turn_id",
+          "speaker",
+          "text",
+          "is_final",
+          "occurred_at"
+        ],
+        "title": "Turn"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HostToken": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

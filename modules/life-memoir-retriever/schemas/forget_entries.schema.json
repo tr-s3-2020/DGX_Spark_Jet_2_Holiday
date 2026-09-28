@@ -1,0 +1,72 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "user_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "User Id",
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "entries",
+        "session"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "decision_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Decision Ref",
+      "type": "string"
+    },
+    "entry_ids": {
+      "anyOf": [
+        {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Entry Ids"
+    },
+    "session_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Session Id"
+    }
+  },
+  "required": [
+    "request_id",
+    "user_id",
+    "scope",
+    "decision_ref"
+  ],
+  "title": "ForgetEntries",
+  "type": "object"
+}

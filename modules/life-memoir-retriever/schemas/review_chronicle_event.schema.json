@@ -1,0 +1,101 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "event_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Event Id",
+      "type": "string"
+    },
+    "expected_event_version": {
+      "minimum": 1,
+      "title": "Expected Event Version",
+      "type": "integer"
+    },
+    "action": {
+      "enum": [
+        "confirm_time",
+        "correct_time",
+        "reject_inference"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "decision_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Decision Ref",
+      "type": "string"
+    },
+    "resolution_version": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Resolution Version"
+    },
+    "alternative_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Alternative Id"
+    },
+    "time_text": {
+      "anyOf": [
+        {
+          "maxLength": 16000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Text"
+    },
+    "text_locale": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Text Locale"
+    }
+  },
+  "required": [
+    "request_id",
+    "event_id",
+    "expected_event_version",
+    "action",
+    "decision_ref"
+  ],
+  "title": "ReviewChronicleEvent",
+  "type": "object"
+}

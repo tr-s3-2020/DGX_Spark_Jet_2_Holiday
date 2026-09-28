@@ -1,0 +1,4 @@
+interface:
+  display_name: "长者故事与记忆"
+  short_description: "记住长者的故事和交流偏好，从自然讲述逐步整理有来源的个人年谱"
+  default_prompt: "使用 $life-memoir-retriever 支持自然的长者对话，按许可记录与取回记忆，并在后台整理个人年谱。"

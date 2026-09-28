@@ -1,0 +1,11 @@
+.venv/
+.data/
+demo-output/
+dist/
+build/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.coverage
+.env
+config.local.json

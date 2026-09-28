@@ -1,0 +1,35 @@
+[
+  {
+    "source_id": "S07",
+    "file": "Baylor-introduction-oral-history-2016.pdf",
+    "url": "https://library.web.baylor.edu/sites/g/files/ecbvkj1806/files/2024-12/intro_manual_2016.pdf",
+    "downloaded_at": "2026-09-26",
+    "bytes": 649509,
+    "sha256": "559865f54b59ec3a9886c6ca43dc69c95ee61445fae68863f8bcbf204843b12a",
+    "pages": 21,
+    "rights": "原版PDF明确允许教育用途下载、打印与复制；本资料库保存供学习。其他使用须联系权利人。",
+    "verification": "PDF解析成功；已渲染并目视抽查页面，非逐页视觉校对"
+  },
+  {
+    "source_id": "S09",
+    "file": "LOC-vhp-field-kit.pdf",
+    "url": "https://www.loc.gov/static/programs/veterans-history-project/documents/vhp-field-kit-complete.pdf",
+    "downloaded_at": "2026-09-26",
+    "bytes": 5171921,
+    "sha256": "038d81d50eb591f99d79102de6e23dd4d4f3aab2513292fa70ed2a66f4cb448b",
+    "pages": 24,
+    "rights": "美国国会图书馆公开工作材料，原版保留机构标识；不可据此推定其收录的第三方访谈、照片或个人资料均可自由使用。",
+    "verification": "PDF解析成功；已渲染并目视抽查页面，非逐页视觉校对"
+  },
+  {
+    "source_id": "S10",
+    "file": "LOC-sample-interview-questions.pdf",
+    "url": "https://www.loc.gov/static/programs/veterans-history-project/documents/sample-interview-questions.pdf",
+    "downloaded_at": "2026-09-26",
+    "bytes": 132051,
+    "sha256": "e53f2e6fba4a404b9a58fbccc50bceb71406878e56cf56955f4b8252104a9dc3",
+    "pages": 3,
+    "rights": "美国国会图书馆公开工作材料，原版保留机构标识；不可据此推定其收录的第三方访谈、照片或个人资料均可自由使用。",
+    "verification": "PDF解析成功；已渲染并目视抽查页面，非逐页视觉校对"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "request_id": "fixture-open-1",
+  "user_id": "fixture-elder",
+  "session_id": "fixture-session-1",
+  "locale": "zh-CN",
+  "conditions": {
+    "noise": "quiet",
+    "communication_mode": "text"
+  }
+}

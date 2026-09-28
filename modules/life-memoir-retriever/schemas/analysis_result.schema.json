@@ -1,0 +1,284 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "local_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Local Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "story",
+            "detail",
+            "recent",
+            "observation",
+            "preference"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 1500,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        },
+        "content_locale": {
+          "maxLength": 64,
+          "pattern": "^(und|mul|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$",
+          "title": "Content Locale",
+          "type": "string"
+        },
+        "basis": {
+          "enum": [
+            "self_report",
+            "family_report",
+            "inferred"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "evidence_quotes": {
+          "additionalProperties": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "propertyNames": {
+            "maxLength": 128,
+            "minLength": 1
+          },
+          "title": "Evidence Quotes",
+          "type": "object"
+        },
+        "conditions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Conditions",
+          "type": "object"
+        },
+        "temporal_scope": {
+          "enum": [
+            "session",
+            "recent",
+            "long_term"
+          ],
+          "title": "Temporal Scope",
+          "type": "string"
+        },
+        "time_assertions": {
+          "items": {
+            "$ref": "#/$defs/TimeClaim"
+          },
+          "maxItems": 16,
+          "title": "Time Assertions",
+          "type": "array"
+        },
+        "target_entry_id": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Entry Id"
+        },
+        "expected_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Version"
+        }
+      },
+      "required": [
+        "local_id",
+        "kind",
+        "content",
+        "content_locale",
+        "basis",
+        "source_ids",
+        "evidence_quotes",
+        "temporal_scope"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "TimeClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "relation": {
+          "enum": [
+            "in_year",
+            "at_age",
+            "years_after",
+            "before_event",
+            "after_event",
+            "not_before_event",
+            "life_stage",
+            "unresolved"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "raw_text": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Raw Text",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "year_value": {
+          "anyOf": [
+            {
+              "maximum": 2200,
+              "minimum": 1000,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year Value"
+        },
+        "age_value": {
+          "anyOf": [
+            {
+              "maximum": 130,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Age Value"
+        },
+        "age_basis": {
+          "default": "unknown",
+          "enum": [
+            "completed_years",
+            "nominal_years",
+            "unknown"
+          ],
+          "title": "Age Basis",
+          "type": "string"
+        },
+        "offset_years": {
+          "anyOf": [
+            {
+              "maximum": 130,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset Years"
+        },
+        "anchor_ref": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Anchor Ref"
+        },
+        "calendar": {
+          "default": "unknown",
+          "enum": [
+            "gregorian",
+            "lunar",
+            "unknown"
+          ],
+          "title": "Calendar",
+          "type": "string"
+        },
+        "approximate": {
+          "default": false,
+          "title": "Approximate",
+          "type": "boolean"
+        },
+        "subject": {
+          "default": "self",
+          "enum": [
+            "self",
+            "other",
+            "ambiguous"
+          ],
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "raw_text",
+        "source_id"
+      ],
+      "title": "TimeClaim",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "maxItems": 80,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 20,
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "title": "AnalysisResult",
+  "type": "object"
+}

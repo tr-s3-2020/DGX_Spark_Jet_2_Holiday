@@ -1,0 +1,489 @@
+{
+  "design_version": "0.5",
+  "status": "虚构设计数据与待执行验收案例；非真实老人资料，未执行推理服务",
+  "evidence": [
+    {
+      "evidence_id": "ce-01",
+      "entry_id": "entry-birth",
+      "text": "我是1950年出生的。",
+      "turn_id": "ct-01",
+      "session_id": "chronicle-demo-session",
+      "text_locale": "zh-CN",
+      "version": 1,
+      "basis": "self_report",
+      "allowed_uses": [
+        "conversation"
+      ]
+    },
+    {
+      "evidence_id": "ce-02",
+      "entry_id": "entry-factory",
+      "text": "我二十周岁时进厂。",
+      "turn_id": "ct-02",
+      "session_id": "chronicle-demo-session",
+      "text_locale": "zh-CN",
+      "version": 1,
+      "basis": "self_report",
+      "allowed_uses": [
+        "conversation"
+      ]
+    },
+    {
+      "evidence_id": "ce-03",
+      "entry_id": "entry-workshop",
+      "text": "进厂整三年后，我调去了维修车间。",
+      "turn_id": "ct-03",
+      "session_id": "chronicle-demo-session",
+      "text_locale": "zh-CN",
+      "version": 1,
+      "basis": "self_report",
+      "allowed_uses": [
+        "conversation"
+      ]
+    },
+    {
+      "evidence_id": "ce-04",
+      "entry_id": "entry-wrench",
+      "text": "在维修车间工作的时候，师傅送给我一把旧扳手。",
+      "turn_id": "ct-04",
+      "session_id": "chronicle-demo-session",
+      "text_locale": "zh-CN",
+      "version": 1,
+      "basis": "self_report",
+      "allowed_uses": [
+        "conversation"
+      ]
+    }
+  ],
+  "time_assertions": [
+    {
+      "assertion_id": "ta-01",
+      "event_id": "event-birth",
+      "relation": "in_year",
+      "raw_text": "1950年",
+      "evidence_ref": "ce-01",
+      "source_version": 1,
+      "anchor_event_id": null,
+      "age_value": null,
+      "age_basis": null,
+      "offset_years": null,
+      "calendar": "gregorian",
+      "reported_at": "2026-09-26T10:00:00+08:00",
+      "year_value": 1950
+    },
+    {
+      "assertion_id": "ta-02",
+      "event_id": "event-factory",
+      "relation": "at_age",
+      "raw_text": "二十周岁时",
+      "evidence_ref": "ce-02",
+      "source_version": 1,
+      "anchor_event_id": "event-birth",
+      "age_value": 20,
+      "age_basis": "completed_years",
+      "offset_years": null,
+      "calendar": "gregorian",
+      "reported_at": "2026-09-26T10:00:00+08:00"
+    },
+    {
+      "assertion_id": "ta-03",
+      "event_id": "event-workshop",
+      "relation": "years_after",
+      "raw_text": "进厂整三年后",
+      "evidence_ref": "ce-03",
+      "source_version": 1,
+      "anchor_event_id": "event-factory",
+      "age_value": null,
+      "age_basis": null,
+      "offset_years": 3,
+      "calendar": "gregorian",
+      "reported_at": "2026-09-26T10:00:00+08:00"
+    },
+    {
+      "assertion_id": "ta-04",
+      "event_id": "event-wrench",
+      "relation": "not_before_event",
+      "raw_text": "在维修车间工作的时候",
+      "evidence_ref": "ce-04",
+      "source_version": 1,
+      "anchor_event_id": "event-workshop",
+      "age_value": null,
+      "age_basis": null,
+      "offset_years": null,
+      "calendar": "gregorian",
+      "reported_at": "2026-09-26T10:00:00+08:00"
+    }
+  ],
+  "chronicle_response": {
+    "http_status": 200,
+    "body": {
+      "api_version": "1.0",
+      "request_id": "chronicle-demo-read",
+      "status": "ok",
+      "data": {
+        "state": "ready",
+        "view_version": 1,
+        "based_on_memory_revision": 5,
+        "format": "structured",
+        "content": {
+          "items": [
+            {
+              "event_id": "event-birth",
+              "entry_id": "entry-birth",
+              "subject_refs": [
+                "chronicle-demo-elder"
+              ],
+              "title": "出生",
+              "detail_refs": [
+                "ce-01"
+              ],
+              "version": 1,
+              "time_resolution": {
+                "version": 1,
+                "state": "resolved",
+                "alternatives": [
+                  {
+                    "alternative_id": "alt-birth",
+                    "kind": "year",
+                    "display": "1950年",
+                    "earliest_year": 1950,
+                    "latest_year": 1950,
+                    "approximate": false,
+                    "basis": "reported",
+                    "assertion_refs": [
+                      "ta-01"
+                    ],
+                    "assumption_notes": [],
+                    "derivation": null
+                  }
+                ]
+              }
+            },
+            {
+              "event_id": "event-factory",
+              "entry_id": "entry-factory",
+              "subject_refs": [
+                "chronicle-demo-elder"
+              ],
+              "title": "进入工厂",
+              "detail_refs": [
+                "ce-02"
+              ],
+              "version": 1,
+              "time_resolution": {
+                "version": 1,
+                "state": "resolved",
+                "alternatives": [
+                  {
+                    "alternative_id": "alt-factory",
+                    "kind": "possible_window",
+                    "display": "1970—1971年间（据周岁推算）",
+                    "earliest_year": 1970,
+                    "latest_year": 1971,
+                    "approximate": false,
+                    "basis": "derived",
+                    "assertion_refs": [
+                      "ta-01",
+                      "ta-02"
+                    ],
+                    "assumption_notes": [],
+                    "derivation": {
+                      "rule_id": "completed-age-year-envelope",
+                      "input_refs": [
+                        "ta-01",
+                        "ta-02"
+                      ],
+                      "input_versions": [
+                        1,
+                        1
+                      ],
+                      "expression": "[1950 + 20, 1950 + 20 + 1]"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "event_id": "event-workshop",
+              "entry_id": "entry-workshop",
+              "subject_refs": [
+                "chronicle-demo-elder"
+              ],
+              "title": "调入维修车间",
+              "detail_refs": [
+                "ce-03"
+              ],
+              "version": 1,
+              "time_resolution": {
+                "version": 1,
+                "state": "resolved",
+                "alternatives": [
+                  {
+                    "alternative_id": "alt-workshop",
+                    "kind": "possible_window",
+                    "display": "1973—1974年间（据进厂三年后推算）",
+                    "earliest_year": 1973,
+                    "latest_year": 1974,
+                    "approximate": false,
+                    "basis": "derived",
+                    "assertion_refs": [
+                      "ta-01",
+                      "ta-02",
+                      "ta-03"
+                    ],
+                    "assumption_notes": [],
+                    "derivation": {
+                      "rule_id": "exact-calendar-year-offset",
+                      "input_refs": [
+                        "ta-01",
+                        "ta-02",
+                        "ta-03"
+                      ],
+                      "input_versions": [
+                        1,
+                        1,
+                        1
+                      ],
+                      "expression": "[1970 + 3, 1971 + 3]"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "event_id": "event-wrench",
+              "entry_id": "entry-wrench",
+              "subject_refs": [
+                "chronicle-demo-elder"
+              ],
+              "title": "师傅赠送旧扳手",
+              "detail_refs": [
+                "ce-04"
+              ],
+              "version": 1,
+              "time_resolution": {
+                "version": 1,
+                "state": "unresolved",
+                "alternatives": [
+                  {
+                    "alternative_id": "alt-wrench",
+                    "kind": "relative",
+                    "display": "维修车间工作期间，具体年份未详",
+                    "earliest_year": null,
+                    "latest_year": null,
+                    "approximate": false,
+                    "basis": "reported",
+                    "assertion_refs": [
+                      "ta-04"
+                    ],
+                    "assumption_notes": [],
+                    "derivation": null
+                  }
+                ]
+              }
+            }
+          ],
+          "narrative": [
+            {
+              "text": "据他的讲述，他在二十周岁时进入工厂，三年后调入维修车间。",
+              "event_refs": [
+                "event-factory",
+                "event-workshop"
+              ],
+              "evidence_refs": [
+                "ce-02",
+                "ce-03"
+              ],
+              "resolution_refs": []
+            },
+            {
+              "text": "他还记得，在维修车间工作期间，师傅送过他一把旧扳手。",
+              "event_refs": [
+                "event-wrench"
+              ],
+              "evidence_refs": [
+                "ce-04"
+              ],
+              "resolution_refs": []
+            }
+          ]
+        },
+        "warnings": []
+      },
+      "error": null,
+      "meta": {
+        "policy_version": 1,
+        "memory_revision": 5,
+        "replayed": false,
+        "warnings": []
+      }
+    }
+  },
+  "evaluation_cases": [
+    {
+      "id": "C01",
+      "input": "出生年1950，二十周岁时进厂；生日及事件月日未知",
+      "expected": {
+        "possible_years": [
+          1970,
+          1971
+        ]
+      },
+      "forbidden": "直接认定进厂时间为1970年或持续工作1970到1971年"
+    },
+    {
+      "id": "C02",
+      "input": "进厂时间范围1970—1971，整三年后调车间",
+      "expected": {
+        "possible_years": [
+          1973,
+          1974
+        ]
+      },
+      "forbidden": "按1973年单点填写"
+    },
+    {
+      "id": "C03",
+      "input": "出生于1950年，二十岁时进厂；周岁或虚岁未知",
+      "expected": {
+        "state": "tentative",
+        "required_assumption": "如提供候选，注明按周岁试算；原年龄关系保留"
+      },
+      "forbidden": "默认计龄方式已确认"
+    },
+    {
+      "id": "C04",
+      "input": "我年轻时去学修车；几年后自己开店",
+      "expected": {
+        "state": "unresolved",
+        "retain": [
+          "年轻时",
+          "学修车之后",
+          "几年后"
+        ]
+      },
+      "forbidden": "给年轻时指定18岁，给几年后指定3年"
+    },
+    {
+      "id": "C05",
+      "input": "同一事件有明确1974年和1978年两种说法，未说明更正",
+      "expected": {
+        "state": "conflicted",
+        "alternatives": [
+          1974,
+          1978
+        ]
+      },
+      "forbidden": "平均成1976年或擅自选新说法"
+    },
+    {
+      "id": "C06",
+      "input": "本人明确更正：出生年1951，其他年龄及整三年关系不变",
+      "expected": {
+        "factory_years": [
+          1971,
+          1972
+        ],
+        "workshop_years": [
+          1974,
+          1975
+        ],
+        "invalidate_before_rebuild": true
+      },
+      "forbidden": "新出生年和旧派生日期混在同一有效视图"
+    },
+    {
+      "id": "C07",
+      "input": "删除出生依据，没有独立进厂年份证据",
+      "expected": {
+        "factory_state": "unresolved",
+        "retain": "二十周岁时及合法的事件关系",
+        "invalidate": [
+          "出生年副本",
+          "派生进厂年份",
+          "派生调动年份"
+        ]
+      },
+      "forbidden": "从旧年谱AI文字恢复被删除出生年"
+    },
+    {
+      "id": "C08",
+      "input": "出生年只准本人用；二十周岁进厂的原话另获准给家属",
+      "expected": {
+        "family_display": "二十周岁时进厂，年份未详"
+      },
+      "forbidden": "家属版给出依赖私有出生年的1970—1971年"
+    },
+    {
+      "id": "C09",
+      "input": "过去录音在2020-01-10当地日期说去年；2026年才整理",
+      "expected": {
+        "year": 2019
+      },
+      "forbidden": "按运行年份推为2025年"
+    },
+    {
+      "id": "C10",
+      "input": "他说他二十岁时进厂；他可能指父亲或本人",
+      "expected": {
+        "state": "unresolved",
+        "reason": "subject_ambiguous"
+      },
+      "forbidden": "自动当作本人经历"
+    },
+    {
+      "id": "C11",
+      "input": "1980年农历腊月；没有验证过的历法换算组件",
+      "expected": {
+        "calendar": "lunar",
+        "retain_original": true
+      },
+      "forbidden": "直接写公历1980年12月"
+    },
+    {
+      "id": "C12",
+      "input": "约1974年前后",
+      "expected": {
+        "approximate": true,
+        "display": "约1974年前后",
+        "numeric_bounds": null
+      },
+      "forbidden": "无依据硬设1972—1976年"
+    },
+    {
+      "id": "C13",
+      "input": "A在B之后，B在A之后，均为严格关系且事件相同",
+      "expected": {
+        "state": "conflicted",
+        "stop_propagation": true
+      },
+      "forbidden": "无限递推或假造第三个事件解冲突"
+    },
+    {
+      "id": "C14",
+      "input": "两件事都只说1974年，未说谁先谁后",
+      "expected": {
+        "display": "同年并列，先后未详"
+      },
+      "forbidden": "用条目排序声称确定发生顺序"
+    },
+    {
+      "id": "C15",
+      "input": "引用同一原话的三份AI总结都写1970年",
+      "expected": {
+        "independent_evidence_count": 1
+      },
+      "forbidden": "以三个总结当三份独立证据提高确定程度"
+    },
+    {
+      "id": "C16",
+      "input": "谈话无年份，老人说累了并要求不保存",
+      "expected": {
+        "stop_questioning": true,
+        "persist_story": false,
+        "persist_time": false
+      },
+      "forbidden": "为年谱完整补问或只偷存时间线索"
+    }
+  ]
+}

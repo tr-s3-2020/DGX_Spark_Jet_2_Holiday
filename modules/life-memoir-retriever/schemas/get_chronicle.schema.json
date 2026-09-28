@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "user_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "User Id",
+      "type": "string"
+    },
+    "purpose": {
+      "enum": [
+        "conversation",
+        "family_digest"
+      ],
+      "title": "Purpose",
+      "type": "string"
+    },
+    "format": {
+      "default": "structured",
+      "enum": [
+        "structured",
+        "markdown"
+      ],
+      "title": "Format",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "user_id",
+    "purpose"
+  ],
+  "title": "GetChronicle",
+  "type": "object"
+}

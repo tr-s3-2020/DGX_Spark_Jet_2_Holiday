@@ -1,0 +1,80 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "request_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "entry_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Entry Id",
+      "type": "string"
+    },
+    "expected_version": {
+      "minimum": 1,
+      "title": "Expected Version",
+      "type": "integer"
+    },
+    "action": {
+      "enum": [
+        "correct_content",
+        "confirm_preference",
+        "set_allowed_uses"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "decision_ref": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Decision Ref",
+      "type": "string"
+    },
+    "content": {
+      "anyOf": [
+        {
+          "maxLength": 16000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Content"
+    },
+    "allowed_uses": {
+      "anyOf": [
+        {
+          "items": {
+            "enum": [
+              "conversation",
+              "family_digest"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Allowed Uses"
+    }
+  },
+  "required": [
+    "request_id",
+    "entry_id",
+    "expected_version",
+    "action",
+    "decision_ref"
+  ],
+  "title": "ReviseEntry",
+  "type": "object"
+}
