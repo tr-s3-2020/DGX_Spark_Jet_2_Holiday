@@ -1,0 +1,34 @@
+name: Life memoir lifecycle tests
+
+on:
+  pull_request:
+    paths:
+      - 'modules/life-memoir-retriever/**'
+      - '.github/workflows/life-memoir-tests.yml'
+  push:
+    paths:
+      - 'modules/life-memoir-retriever/**'
+      - '.github/workflows/life-memoir-tests.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12']
+    defaults:
+      run:
+        working-directory: modules/life-memoir-retriever
+    env:
+      PYTHONASYNCIODEBUG: '1'
+      PYTHONWARNINGS: 'error::RuntimeWarning,error::ResourceWarning'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -c constraints-tested.txt -e '.[dev]'
+      # Also stop hangs in asyncio.run() teardown, outside individual test bodies.
+      - run: timeout --kill-after=10s 120s python -X faulthandler -m pytest -q -o faulthandler_timeout=30

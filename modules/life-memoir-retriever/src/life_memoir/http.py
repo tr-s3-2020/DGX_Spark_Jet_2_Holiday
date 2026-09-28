@@ -39,8 +39,10 @@ def create_app(service: MemoryService, credentials: dict[str, Principal]) -> Fas
     @asynccontextmanager
     async def lifespan(app):
         await service.start()
-        yield
-        await service.close()
+        try:
+            yield
+        finally:
+            await service.close()
 
     app = FastAPI(title="Life Memoir Memory API", version="1.0", lifespan=lifespan)
 
