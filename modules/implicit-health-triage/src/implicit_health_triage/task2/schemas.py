@@ -61,6 +61,9 @@ class ResponseOutput(Contract):
 
 
 class TriageMetadata(Contract):
+    degraded: bool = Field(
+        description="True only when both semantic attempts failed; false for successful analysis or safety blocking"
+    )
     semantic_backend: Literal["none", "mock", "qwen"]
     qwen_called: bool
     latency_ms: float = Field(ge=0)

@@ -114,7 +114,7 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:8080/v1/implicit-health-triage' `
     "mode": "health_care",
     "text": "听起来您今天提到下肢沉重、没什么力气，确实有些不舒服。您平时该吃的药都按原来的安排吃了吗？"
   },
-  "metadata": {"semantic_backend": "mock", "qwen_called": false, "latency_ms": 1.0}
+  "metadata": {"semantic_backend": "mock", "qwen_called": false, "degraded": false, "latency_ms": 1.0}
 }
 ```
 
@@ -190,7 +190,7 @@ src/implicit_health_triage/task2/
 
 拦截后 `health_signal.type=medication`、`severity=high`。固定安全话术与原需求文档一致，绝不交给 Qwen 改写。健康回复也使用模板，不把模型的自由文本直接拼入面向用户的回复。
 
-模型仅返回 `type/detail/severity`。Parser 支持纯 JSON 和完整 Markdown JSON 代码块，校验枚举、类型、必填字段、额外字段、重复 JSON 键及 `none` 的一致性。解析失败或 HTTP/超时错误最多重试一次；两次失败按文档降级为 `none/空 detail/low`，并记录不含原文的警告日志。取消请求不会被吞掉。
+模型仅返回 `type/detail/severity`。Parser 支持纯 JSON 和完整 Markdown JSON 代码块，校验枚举、类型、必填字段、额外字段、重复 JSON 键及 `none` 的一致性。解析失败或 HTTP/超时错误最多重试一次；两次失败按文档降级为 `none/空 detail/low`，设置 `metadata.degraded=true`，并记录不含原文的警告日志。取消请求不会被吞掉。
 
 `qwen_called` 记录是否尝试调用 Qwen，因此 Qwen 超时后降级仍为 `true`；Mock 始终为 `false`。延迟覆盖安全检查、语义分析及重试。
 
@@ -236,3 +236,25 @@ TRIAGE_GUARDRAILS_ENABLED=true
 Mock 是用于验收的有限规则集合，不能代表真实模型的泛化能力。单句规则可能遗漏方言或省略信息，也可能对文档明确要求拦截的模糊句（如“今天不吃行不行？”）保守阻断。JSON 校验保证结构，不证明模型判断正确。真实 Qwen 的效果和 DGX GPU 部署需要在模型上线后另行验证；本次仅验证其 HTTP 适配器与失败路径。
 
 NeMo 接入参考：[NVIDIA Input Rails](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/colang/colang-2/getting-started/input-rails)、[NVIDIA Python Actions](https://docs.nvidia.com/nemo/guardrails/configure-guardrails/colang/colang-2/language-reference/python-actions)。
+
+## 9. 给任务四的新对接约定（2026-09-28）
+
+当前协议是 `task2.TriageOutput`，不是旧版 `TriageResult`。新增必填输出字段 `metadata.degraded`：
+
+| 路径 | degraded | 说明 |
+|---|---|---|
+| 正常识别健康信息 / 正常无信号 | false | 成功完成语义提取；无信号不代表健康正常 |
+| 首次失败，重试成功 | false | 最终拿到有效结果 |
+| 两次语义尝试均失败 | true | HTTP/超时/JSON 校验失败后的兜底 |
+| 用药安全阻断 | false | 策略正常生效，未调用语义模型 |
+
+partial/空文本仍返回 ignored，不附 metadata；安全门异常仍返回 503，不伪装成降级成功。
+任务四接收完整输出，保留 `safety.blocked`、`metadata.degraded` 和关联 ID。
+不要用 `qwen_called` 推断调用是否成功；也不要在缺失 degraded 的旧报文上默认填写 false。
+
+新 Schema 在模块 `schemas/task2/`，运行 `python scripts/export_task2_schemas.py --check` 校验。
+根部 `schemas/*.json` 是 legacy 中文协议，仅供旧接口兼容。
+`integration.to_digest_record` 同样是旧接口：输入旧 TriageResult，输出健康三字段加时间戳；
+不携带 safety、response、metadata、会话/轮次 ID，且旧 type=无 返回 None。它不能作为任务四唯一数据源，也不接受新版 TriageOutput。
+
+这是输出字段扩展；严格拒绝额外字段的消费方须更新其 Schema。任务四现有适配器已识别 metadata.degraded。

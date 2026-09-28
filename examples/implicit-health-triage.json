@@ -27,7 +27,8 @@
         },
         "metadata": {
           "semantic_backend": "mock",
-          "qwen_called": false
+          "qwen_called": false,
+          "degraded": false
         }
       },
       "additional_assertions": [
@@ -60,7 +61,8 @@
         },
         "metadata": {
           "semantic_backend": "mock",
-          "qwen_called": false
+          "qwen_called": false,
+          "degraded": false
         }
       },
       "additional_assertions": [
@@ -93,7 +95,8 @@
         },
         "metadata": {
           "semantic_backend": "none",
-          "qwen_called": false
+          "qwen_called": false,
+          "degraded": false
         }
       },
       "additional_assertions": [

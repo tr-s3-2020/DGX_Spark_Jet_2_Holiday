@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "detail": {
+      "maxLength": 256,
+      "title": "Detail",
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "low",
+        "moderate",
+        "high"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "type": {
+      "enum": [
+        "none",
+        "symptom",
+        "sleep",
+        "pain",
+        "medication",
+        "mobility",
+        "appetite",
+        "other"
+      ],
+      "title": "Type",
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "detail",
+    "severity"
+  ],
+  "title": "HealthSignal",
+  "type": "object",
+  "x-source": "implicit_health_triage.task2.schemas.HealthSignal"
+}

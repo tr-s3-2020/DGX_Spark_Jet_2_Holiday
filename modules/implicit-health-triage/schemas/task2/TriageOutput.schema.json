@@ -1,0 +1,172 @@
+{
+  "$defs": {
+    "HealthSignal": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "maxLength": 256,
+          "title": "Detail",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "none",
+            "symptom",
+            "sleep",
+            "pain",
+            "medication",
+            "mobility",
+            "appetite",
+            "other"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "detail",
+        "severity"
+      ],
+      "title": "HealthSignal",
+      "type": "object"
+    },
+    "ResponseOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "passthrough",
+            "health_care",
+            "medication_safety"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text"
+        }
+      },
+      "required": [
+        "mode",
+        "text"
+      ],
+      "title": "ResponseOutput",
+      "type": "object"
+    },
+    "SafetyOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "blocked": {
+          "title": "Blocked",
+          "type": "boolean"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        }
+      },
+      "required": [
+        "blocked"
+      ],
+      "title": "SafetyOutput",
+      "type": "object"
+    },
+    "TriageMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "degraded": {
+          "description": "True only when both semantic attempts failed; false for successful analysis or safety blocking",
+          "title": "Degraded",
+          "type": "boolean"
+        },
+        "latency_ms": {
+          "minimum": 0,
+          "title": "Latency Ms",
+          "type": "number"
+        },
+        "qwen_called": {
+          "title": "Qwen Called",
+          "type": "boolean"
+        },
+        "semantic_backend": {
+          "enum": [
+            "none",
+            "mock",
+            "qwen"
+          ],
+          "title": "Semantic Backend",
+          "type": "string"
+        }
+      },
+      "required": [
+        "degraded",
+        "semantic_backend",
+        "qwen_called",
+        "latency_ms"
+      ],
+      "title": "TriageMetadata",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "health_signal": {
+      "$ref": "#/$defs/HealthSignal"
+    },
+    "metadata": {
+      "$ref": "#/$defs/TriageMetadata"
+    },
+    "response": {
+      "$ref": "#/$defs/ResponseOutput"
+    },
+    "safety": {
+      "$ref": "#/$defs/SafetyOutput"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "turn_id": {
+      "title": "Turn Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "turn_id",
+    "health_signal",
+    "safety",
+    "response",
+    "metadata"
+  ],
+  "title": "TriageOutput",
+  "type": "object",
+  "x-source": "implicit_health_triage.task2.schemas.TriageOutput"
+}

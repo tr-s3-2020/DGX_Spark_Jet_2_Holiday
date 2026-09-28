@@ -1,4 +1,6 @@
-"""Export the interface contract as machine-readable JSON Schema.
+"""Export LEGACY Chinese-enum contracts only.
+
+New integrations use scripts/export_task2_schemas.py and schemas/task2/.
 
 The pydantic models in ``implicit_health_triage.schemas`` are the single source
 of truth.  This script projects them into ``schemas/*.schema.json`` so that

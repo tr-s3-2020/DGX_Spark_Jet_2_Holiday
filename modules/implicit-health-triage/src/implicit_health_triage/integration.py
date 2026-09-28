@@ -66,7 +66,11 @@ def to_digest_record(
     result: TriageResult,
     timestamp: str | None = None,
 ) -> HealthSignalRecord | None:
-    """Project a triage result into the record ``family-digest-sync`` consumes.
+    """Legacy-only projection of the Chinese-enum TriageResult.
+
+    Not a task2.TriageOutput adapter. Drops safety/response/metadata and IDs.
+    New family-digest integrations must receive the complete TriageOutput,
+    including safety.blocked and metadata.degraded, instead of this projection.
 
     Returns ``None`` for ``type=无`` turns, which carry nothing worth
     summarising.  No P0/P1/P2 judgement is made here — that belongs to the
