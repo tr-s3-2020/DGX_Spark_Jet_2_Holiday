@@ -26,11 +26,11 @@ AI 陪伴老人：全双工语音对话 + 隐式健康探针 + 长程记忆 + �
 | 二 `implicit-health-triage`（隐式健康探针与用药安全） | `docs/task2-collaboration-handoff` | ⚠️ **仅接口文档**，实现代码尚未入库（拟放 `modules/implicit-health-triage/`） |
 | 三 `life-memoir-retriever`（口述史图谱与长程记忆） | `codex/luyifeng-module-3` | ⚠️ Skill 定义 + JSON Schema + `src/life_memoir/` 实现 + 冒烟脚本已入库，**尚未在本环境安装验证** |
 
-任务四 `family-digest-sync`（家属摘要）尚无对应分支。
+| 四 `family-digest-sync`（代际降噪与异常分级） | `zoe-module-4` | ⚠️ Skill 定义 + `src/family_digest/` 实现 + 54 项测试，**尚未在本环境验证** |
 
 ## 联调分支
 
-`integration/skills-1-2-3` 合并以上三个分支用于串联验证。任务二只有接口文档
+`integration/skills-1-2-3` 合并以上四个分支用于串联验证。任务二只有接口文档
 （实现待入库），所以目前先做**契约级校验**：用 Skill 一的真实输出去比对任务二的
 输入输出约定和任务三的 JSON Schema。见
 `modules/elderly-voice-duplex/skills/elderly_voice_duplex/tests/test_integration_contract.py`。
@@ -80,4 +80,13 @@ python3 -m venv .venv && source .venv/bin/activate
 python -m pip install -c constraints-tested.txt -e '.[dev]'
 export MEMORY_API_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 memory-skill serve --config examples/config.fixture.json --auth examples/auth.fixture.json
+```
+
+### 任务四（家属摘要）
+
+```bash
+cd modules/family-digest-sync
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e '.[dev]'
+python scripts/digest_cli.py --scenario examples/scenario_p0_medication.json
 ```

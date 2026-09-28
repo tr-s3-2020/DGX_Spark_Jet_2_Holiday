@@ -1,0 +1,15 @@
+{
+  "_comment": "B 的语义模型超时/失败会降级为 none/空 detail/low，且协议里没有独立降级标志。本场景复现该路径：D 必须写「未能获取」，绝不能写「状况良好」。",
+  "elder_id": "e001",
+  "elder_name": "王奶奶",
+  "date": "2026-09-28",
+  "consents": ["health_summary"],
+  "chronicle": {"state": "not_ready"},
+  "health_signals": [
+    {"event_id": "evt-deg-1", "elder_id": "e001", "occurred_at": "2026-09-28T19:00:00",
+     "session_id": "s7", "turn_id": "t4", "signal_type": "none",
+     "detail": "", "severity": "low", "response_mode": "passthrough",
+     "semantic_backend": "qwen", "qwen_called": true}
+  ],
+  "safety_events": []
+}
