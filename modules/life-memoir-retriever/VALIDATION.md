@@ -6,13 +6,19 @@
 
 | Python | 完整测试 | 退出压力测试 |
 |---|---|---|
-| 3.10.21 | 37 passed，3.19 秒 | 10 类场景各 100 轮，共 1,000 轮通过 |
-| 3.11.16 | 37 passed，3.18 秒 | 10 类场景各 100 轮，共 1,000 轮通过 |
-| 3.12.14 | 37 passed，2.80 秒 | 10 类场景各 100 轮，共 1,000 轮通过 |
+| 3.10.21 | 41 passed，3.67 秒 | 10 类场景各 100 轮，共 1,000 轮通过 |
+| 3.11.16 | 41 passed，3.66 秒 | 10 类场景各 100 轮，共 1,000 轮通过 |
+| 3.12.14 | 41 passed，3.76 秒 | 10 类场景各 100 轮，共 1,000 轮通过 |
 
 合计 3,000 轮，未出现进程挂起、遗留任务、未处理任务异常或未退出的执行器线程。完整测试各有一个既有 Starlette/httpx 弃用提示。以上耗时是本地模拟测试耗时，不代表生产延迟。
 
 覆盖场景：空闲立即关闭、分析中及并发槽排队、分析完成与关闭竞争、宿主取消后在 finally 中清理、关闭调用方连续取消、并发关闭等待者取消、模型超时、模型异常、未提交任务的持久库重启、主协程结束后直接进入 `_cancel_all_tasks`。并发度轮换 1-4，每个压力测试进程有 30 秒硬超时。
+
+### PR CI 回归补充
+
+[PR #3](https://github.com/tr-s3-2020/DGX_Spark_Jet_2_Holiday/pull/3) 首次 push CI 的 Python 3.11 在共享 runner 上出现 asyncio 慢回调调试日志，子进程正常退出，但原有 `assert not stderr` 将诊断信息误判为失败。测试现在仅允许 `Executing <...> took ... seconds` 这一类日志；未知 stderr、RuntimeWarning、ResourceWarning、任务异常和进程超时仍然失败。
+
+新增真实慢回调子进程复现及三类真实错误不能被忽略的检查，三个 Python 版本重新执行后均为 41 passed。上表为更新后的完整测试结果；3,000 轮压力测试验证的是相同服务实现，本次补充仅修改测试的日志判定。
 
 ### 旧代码复现与根因
 
@@ -41,7 +47,7 @@ python tests/shutdown_scenarios.py cancel_closer --repeat 100
 python tests/shutdown_scenarios.py runner_cleanup --repeat 100
 ```
 
-已加入 `.github/workflows/life-memoir-tests.yml` 三版本测试矩阵和进程级硬超时；这里只记录本地执行结果，远程 CI 尚未运行。
+已加入 `.github/workflows/life-memoir-tests.yml` 三版本测试矩阵和进程级硬超时；本表记录本地执行结果，远程 CI 以 [PR #3 Checks](https://github.com/tr-s3-2020/DGX_Spark_Jet_2_Holiday/pull/3/checks) 为准。本次尚未完成全项目集成测试。
 
 ## 2026-09-26：初次联调
 

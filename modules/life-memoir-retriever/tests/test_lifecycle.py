@@ -1,4 +1,5 @@
 import asyncio
+import re
 import subprocess
 import sys
 import textwrap
@@ -10,6 +11,46 @@ from life_memoir.config import Principal, Settings
 from life_memoir.http import create_app
 from life_memoir.service import MemoryService
 from shutdown_scenarios import SCENARIOS
+
+
+
+def assert_probe_stderr(stderr):
+    # Debug mode reports slow callbacks on busy CI hosts even when shutdown is clean.
+    # Permit only that diagnostic; resource warnings and task errors must still fail.
+    unexpected = [line for line in stderr.splitlines() if line.strip() and not
+                  re.fullmatch(r'Executing <.+> took \d+\.\d+ seconds', line)]
+    assert not unexpected, stderr
+
+
+def test_probe_accepts_actual_asyncio_slow_callback_diagnostic():
+    script = textwrap.dedent('''
+        import asyncio
+        import time
+
+        async def run():
+            loop = asyncio.get_running_loop()
+            loop.slow_callback_duration = 0.001
+            loop.call_soon(time.sleep, 0.02)
+            await asyncio.sleep(0.04)
+
+        asyncio.run(run(), debug=True)
+    ''')
+    result = subprocess.run([sys.executable, '-c', script],
+                            capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert 'Executing <Handle' in result.stderr
+    assert_probe_stderr(result.stderr)
+
+
+@pytest.mark.parametrize('diagnostic', [
+    'ResourceWarning: unclosed transport',
+    'RuntimeWarning: coroutine was never awaited',
+    'Task exception was never retrieved',
+])
+def test_probe_rejects_real_diagnostics_alongside_slow_callback(diagnostic):
+    stderr = 'Executing <Task pending> took 0.123 seconds\n' + diagnostic + '\n'
+    with pytest.raises(AssertionError, match=diagnostic):
+        assert_probe_stderr(stderr)
 
 
 def test_close_exits_when_wakeup_wins_scheduler_cancellation():
@@ -153,7 +194,7 @@ def test_asyncio_run_exits_with_active_and_waiting_jobs():
                             capture_output=True, text=True, timeout=5)
     assert result.returncode == 0, result.stdout + result.stderr
     assert 'asyncio.run exited cleanly' in result.stdout
-    assert not result.stderr
+    assert_probe_stderr(result.stderr)
 
 
 @pytest.mark.parametrize('scenario', SCENARIOS)
@@ -162,4 +203,4 @@ def test_shutdown_boundaries_in_subprocess(scenario):
     result = subprocess.run([sys.executable, str(probe), scenario, '--repeat', '4'],
                             capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert not result.stderr, result.stderr
+    assert_probe_stderr(result.stderr)
