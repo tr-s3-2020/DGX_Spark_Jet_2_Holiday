@@ -104,10 +104,11 @@ GET  /api/card?elder=小明          今日卡片（tier / title / sections / �
 POST /api/card/dispatch            {"card_id": "..."}  推送（要 card_id，不是 elder_id）
 ```
 
-已知缺口（已报 skill4 负责人，见 `docs/to-d-a2d-findings.md`）：语音侧的 P0 只产生
-safety event，而 skill4 的卡片正文只渲染健康记录，所以标题是通用的、`sources` 为空、
-`acquisition` 误判成"未取得"。页面因此把 `routing.reasons`（如 `voice_safety_p0`）
-显示在卡片底部，避免家属被"今天没有需要特别说明的健康观察"误导。
+已知缺口（已报 skill4 负责人，见 `docs/to-d-a2d-findings.md`，她已在 `12940af` 修复）：
+语音侧的 P0 只产生 safety event，而她那边的卡片正文原来只渲染健康记录，于是标题通用、
+`sources` 为空、`acquisition` 误判成"未取得"。现在标题会说「用药/安全风险」、
+`sources` 能溯源到 `session:turn`、健康段按三种情形分开写。页面上的
+`routing.reasons` 也按她的建议降级成 tooltip + console.debug，不再给家属看。
 
 ## 目录
 

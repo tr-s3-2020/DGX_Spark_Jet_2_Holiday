@@ -504,11 +504,15 @@
       cardBody.appendChild(sec);
     });
     const bits = [];
-    // 触发原因必须显示：skill4 的卡片正文只渲染健康记录，而语音侧只能产出
-    // safety event，所以纯语音 P0 的卡片会写着"今天没有需要特别说明的健康
-    // 观察"——没有这一行，家属会被那句话误导。已报给 skill4 负责人。
+    // routing.reasons（voice_safety_p0 这类英文 id）是内部调试信息，给家属看
+    // 是噪音——skill4 负责人确认标题已经会说人话了。挪到 tooltip + console，
+    // 只在我们自己排查时用。（修复前它是家属可见的一行，用来兜住
+    // "今天没有需要特别说明的健康观察" 那句误导，现在 skill4 已修，不需要了。）
     const reasons = (res.routing && res.routing.reasons) || [];
-    if (reasons.length) bits.push("触发原因 " + reasons.join("、"));
+    if (reasons.length) {
+      cardEl.title = "触发原因 " + reasons.join("、");
+      console.debug("[family-card] reasons:", reasons);
+    }
     if (card.sources && card.sources.length) bits.push("来源 " + card.sources.join("、"));
     if (card.redacted) bits.push("已脱敏");
     if (card.acquisition && card.acquisition !== "acquired") {
