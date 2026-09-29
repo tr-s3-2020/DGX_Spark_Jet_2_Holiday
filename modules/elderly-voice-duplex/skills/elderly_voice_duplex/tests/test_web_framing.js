@@ -295,8 +295,85 @@ function main() {
   ok &= check("打断后还能继续播新音频",
               player.started.length === 4 && player.api.playTime() > 0);
 
+  // ---- 家属端：推送后立刻显示同一张卡 ----
+  const fam = makeFamily();
+  const card = {
+    tier: "P0", for_date: "2026-09-29",
+    title: "【需要立即关注】用药/安全风险，建议尽快联系小明",
+    sections: [{ heading: "健康观察", body: "· 本次通话中出现需要立即关注的表述" },
+               { heading: "近期回忆", body: "（回忆摘要尚未生成）" }],
+    sources: ["s1:T1"], redacted: false,
+  };
+  fam.render(card, { receipt_id: "mock-abc", status: "sent" });
+  const famText = textOf(fam.famBody);
+  ok &= check("推送后家属端显示卡片标题",
+              famText.indexOf("用药/安全风险") >= 0, famText);
+  ok &= check("推送后家属端显示正文各段",
+              famText.indexOf("健康观察") >= 0
+              && famText.indexOf("本次通话中出现需要立即关注的表述") >= 0,
+              famText);
+  ok &= check("家属端显示 P0 等级", fam.famTier.textContent === "立即关注",
+              fam.famTier.textContent);
+  ok &= check("家属端显示回执号",
+              (fam.famMeta.textContent || "").indexOf("mock-abc") >= 0,
+              fam.famMeta.textContent);
+  ok &= check("家属端显示日期和来源",
+              (fam.famMeta.textContent || "").indexOf("2026-09-29") >= 0
+              && (fam.famMeta.textContent || "").indexOf("s1:T1") >= 0,
+              fam.famMeta.textContent);
+
+  // 没有卡可推时不能留下上一张的内容
+  fam.render(null);
+  ok &= check("无卡时家属端回到占位",
+              fam.famTier.textContent === "未推送"
+              && fam.famBody.children.length === 1,
+              fam.famTier.textContent);
+
+  // 重复推送要说明"没再打扰"，否则家属以为又出事了
+  fam.render(card, { receipt_id: "mock-abc", status: "sent",
+                     reason: "idempotent" });
+  ok &= check("重复推送时说明未再打扰",
+              (fam.famMeta.textContent || "").indexOf("重复推送") >= 0,
+              fam.famMeta.textContent);
+
   console.log("[web-framing] " + (ok ? "PASS" : "FAIL"));
   return ok ? 0 : 1;
+}
+
+
+// ---------------------------------------------------------------- 家属端
+// 点「推送」后右侧家属端必须立刻显示同一张卡。这里跑真的 renderFamily。
+function makeFamily() {
+  const el = () => {
+    const e = { textContent: "", className: "", children: [],
+                appendChild(c) { this.children.push(c); } };
+    // innerHTML = "" 在真实浏览器里会清掉子节点，假 DOM 也得一样，
+    // 否则"无卡时回到占位"这种断言永远不成立。
+    let html = "";
+    Object.defineProperty(e, "innerHTML", {
+      get: () => html,
+      set: (v) => { html = v; e.children = []; },
+    });
+    return e;
+  };
+  const famTier = el(), famBody = el(), famMeta = el();
+  const src = [
+    "const TIER_TEXT = { P0: \"立即关注\", P1: \"今天留意\", P2: \"今日摘要\" };",
+    extract("renderFamily"),
+    "return renderFamily;",
+  ].join("\n");
+  const render = new Function("famTier", "famBody", "famMeta", "document",
+                              src)(famTier, famBody, famMeta,
+                                   { createElement: () => el() });
+  return { render, famTier, famBody, famMeta };
+}
+
+/** 递归收集节点文本，便于断言渲染结果。 */
+function textOf(node) {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  return (node.children || []).map(textOf).join("")
+       + (node.textContent || "");
 }
 
 process.exit(main());

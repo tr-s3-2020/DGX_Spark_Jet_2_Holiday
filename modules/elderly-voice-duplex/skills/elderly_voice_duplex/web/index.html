@@ -123,25 +123,58 @@
               border: 1px solid var(--ring); border-radius: 999px;
               background: var(--accent); color: #fff; cursor: pointer; }
   #cardSend:disabled { opacity: .45; cursor: default; }
+  .family-head { display: flex; align-items: center; gap: 10px;
+                 padding: 4px 0 2px; }
+  .family-head h2 { font-size: 18px; margin: 0; flex: 1; letter-spacing: .04em; }
+  .family-body { padding: 14px; border-radius: 14px; background: var(--card);
+                 border: 1px solid var(--ring); font-size: 14px;
+                 line-height: 1.6; min-height: 120px; }
+  .family-empty { margin: 0; color: var(--muted); font-size: 13px;
+                  text-align: center; padding: 24px 0; }
+  .family-body section { margin-bottom: 12px; }
+  .family-body h3 { font-size: 12.5px; color: var(--muted); margin: 0 0 3px;
+                    font-weight: 600; }
+  .family-body p { margin: 0; white-space: pre-wrap; word-break: break-word; }
+  .family-body .fam-title { font-size: 15px; font-weight: 600;
+                            margin-bottom: 10px; line-height: 1.5; }
+  .family-foot { display: flex; align-items: center; gap: 10px;
+                 font-size: 12px; color: var(--muted); }
+  .family-foot span { flex: 1; }
+  /* 两栏：左老人端、右家属端。窄屏（手机）自动堆叠。 */
+  .layout { width: 100%; max-width: 980px; display: grid; gap: 16px;
+            grid-template-columns: 1fr; align-items: start; }
+  @media (min-width: 900px) {
+    .layout { grid-template-columns: 1fr 1fr; }
+  }
+  .pane { width: 100%; max-width: 460px; justify-self: center;
+          display: flex; flex-direction: column; flex: 1; gap: 14px; }
+  .pane-family { border-left: 1px dashed var(--ring); padding-left: 16px; }
+  @media (max-width: 899px) {
+    .pane-family { border-left: none; padding-left: 0;
+                   border-top: 1px dashed var(--ring); padding-top: 16px; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>小伴</h1>
-    <p>陪伴电话</p>
-  </header>
+<div class="layout">
 
-  <div class="status" id="status" data-state="IDLE">
-    <span class="dot"></span><span id="statusText">未接通</span>
-  </div>
+  <!-- ================================================== 老人端 -->
+  <div class="pane">
+    <header>
+      <h1>小伴</h1>
+      <p>陪伴电话</p>
+    </header>
 
-  <div class="log" id="log"></div>
+    <div class="status" id="status" data-state="IDLE">
+      <span class="dot"></span><span id="statusText">未接通</span>
+    </div>
 
-  <div class="controls">
-    <button id="answer" type="button">接听</button>
-    <button id="hangup" type="button" disabled>挂断</button>
-  </div>
+    <div class="log" id="log"></div>
+
+    <div class="controls">
+      <button id="answer" type="button">接听</button>
+      <button id="hangup" type="button" disabled>挂断</button>
+    </div>
 
   <!-- 采集自检：麦克风有没有在出声音、能量够不够越过 VAD 阈值，
        一眼能看出来。排查"说话没反应"先看这里。 -->
@@ -180,9 +213,27 @@
   </section>
 
   <p class="hint">
-    用手机或电脑浏览器打开本页即可通话。<br>
-    需要允许使用麦克风。说完停一下（约 2 秒）我才会接话。
+    说完停一下（约 2 秒）我才会接话。<br>
+    下方「家属卡片」是今日累计，点推送右边的家属端立刻能看到。
   </p>
+  </div>
+
+  <!-- ================================================== 家属端 -->
+  <div class="pane pane-family">
+    <header class="family-head">
+      <h2>家属端</h2>
+      <span class="tier" id="famTier">未推送</span>
+    </header>
+    <div class="family-body" id="famBody">
+      <p class="family-empty">
+        老人端生成卡片后点「推送给家属」<br>卡片会立即出现在这里
+      </p>
+    </div>
+    <footer class="family-foot">
+      <span id="famMeta"></span>
+    </footer>
+  </div>
+
 </div>
 
 <script>
@@ -466,6 +517,13 @@
   const cardMeta = document.getElementById("cardMeta");
   const cardSend = document.getElementById("cardSend");
   let cardId = "";
+  // 最近一次拿到的卡片。推送时要原样渲染进家属端，所以得留着。
+  let currentCard = null;
+
+  // ------------------------------------------------------- 家属端（右栏）
+  const famTier = document.getElementById("famTier");
+  const famBody = document.getElementById("famBody");
+  const famMeta = document.getElementById("famMeta");
 
   const TIER_TEXT = { P0: "立即关注", P1: "今天留意", P2: "今日摘要" };
 
@@ -478,10 +536,14 @@
       cardBody.innerHTML = "";
       cardMeta.textContent = (res && res.reason) || "skill4 未接入";
       cardSend.disabled = true;
+      currentCard = null;
+      renderFamily(null);
       return;
     }
     const card = res.card;
     if (!card) {
+      currentCard = null;
+      renderFamily(null);
       cardTier.textContent = "P2";
       cardTier.className = "tier p2";
       cardTitle.textContent = "今天还没有需要留意的信号";
@@ -492,6 +554,7 @@
     }
     const tier = String(card.tier || "P2").toUpperCase();
     cardId = card.card_id || "";
+    currentCard = card;
     cardTier.textContent = TIER_TEXT[tier] || tier;
     cardTier.className = "tier " + tier.toLowerCase();
     cardTitle.textContent = card.title || "";
@@ -554,10 +617,56 @@
       cardSend.textContent = out.ok ? "已推送" : "推送失败";
       addNote(out.ok ? "卡片已推送给家属" : ("推送失败：" + (out.reason || "")),
               out.ok ? "" : "warn");
+      // 推送成功就让家属端立刻看到同一张卡。失败不要清空家属端——
+      // 那边可能已经有上一次推送成功的内容。
+      if (out.ok) renderFamily(currentCard, out.data);
     } catch (e) {
       cardSend.textContent = "推送失败";
     }
   });
+
+  /** 把卡片渲染进右侧家属端。receipt 是 dispatch 的回执，可空。 */
+  function renderFamily(card, receipt) {
+    famTier.textContent = "未推送";
+    famTier.className = "tier p2";
+    if (!card) {
+      famBody.innerHTML = "";
+      const p = document.createElement("p");
+      p.className = "family-empty";
+      p.textContent = "今天还没有需要留意的信号";
+      famBody.appendChild(p);
+      famMeta.textContent = "";
+      return;
+    }
+    const tier = String(card.tier || "P2").toUpperCase();
+    famTier.textContent = TIER_TEXT[tier] || tier;
+    famTier.className = "tier " + tier.toLowerCase();
+    famBody.innerHTML = "";
+    const title = document.createElement("p");
+    title.className = "fam-title";
+    title.textContent = card.title || "";
+    famBody.appendChild(title);
+    (card.sections || []).forEach(s => {
+      const sec = document.createElement("section");
+      const h = document.createElement("h3");
+      h.textContent = s.heading || "";
+      const p = document.createElement("p");
+      p.textContent = s.body || "";
+      sec.appendChild(h); sec.appendChild(p);
+      famBody.appendChild(sec);
+    });
+    const bits = [];
+    if (card.for_date) bits.push(card.for_date);
+    if (card.sources && card.sources.length) {
+      bits.push("来源 " + card.sources.join("、"));
+    }
+    if (card.redacted) bits.push("已脱敏");
+    if (receipt) {
+      bits.push("回执 " + (receipt.receipt_id || receipt.status || "-"));
+      if (receipt.reason === "idempotent") bits.push("（重复推送，未再打扰）");
+    }
+    famMeta.textContent = bits.join(" · ");
+  }
 
   // ------------------------------------------------------------- 连接管理
   function connect() {
