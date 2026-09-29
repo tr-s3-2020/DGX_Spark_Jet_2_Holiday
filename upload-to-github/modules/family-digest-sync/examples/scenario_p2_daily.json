@@ -1,0 +1,17 @@
+{
+  "elder_id": "e001",
+  "elder_name": "王奶奶",
+  "date": "2026-09-28",
+  "consents": ["health_summary", "chronicle"],
+  "chronicle": {"state": "not_ready", "warnings": ["CHRONICLE_NOT_READY"]},
+  "health_signals": [
+    {"event_id": "evt-c1", "elder_id": "e001", "occurred_at": "2026-09-28T10:00:00",
+     "session_id": "s9", "turn_id": "t2", "signal_type": "appetite",
+     "detail": "今天吃了小半碗粥", "severity": "low", "semantic_backend": "mock", "qwen_called": false},
+    {"event_id": "evt-c2", "elder_id": "e001", "occurred_at": "2026-09-28T10:05:00",
+     "session_id": "s9", "turn_id": "t3", "signal_type": "none",
+     "detail": "", "severity": "low", "response_mode": "passthrough",
+     "semantic_backend": "mock", "qwen_called": false}
+  ],
+  "safety_events": []
+}

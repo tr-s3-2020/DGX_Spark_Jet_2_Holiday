@@ -1,0 +1,139 @@
+{
+  "backend": "mock",
+  "cases": [
+    {
+      "input": {
+        "session_id": "demo",
+        "turn_id": "t1",
+        "text": "今天菜市场青菜挺便宜。",
+        "is_final": true
+      },
+      "expected_http_status": 200,
+      "expected_output_subset": {
+        "session_id": "demo",
+        "turn_id": "t1",
+        "health_signal": {
+          "type": "none",
+          "detail": "",
+          "severity": "low"
+        },
+        "safety": {
+          "blocked": false,
+          "rule_id": null
+        },
+        "response": {
+          "mode": "passthrough",
+          "text": null
+        },
+        "metadata": {
+          "semantic_backend": "mock",
+          "qwen_called": false
+        }
+      },
+      "additional_assertions": [
+        "metadata.latency_ms >= 0"
+      ]
+    },
+    {
+      "input": {
+        "session_id": "demo",
+        "turn_id": "t2",
+        "text": "今天早上起来腿沉得很，买菜走两步就得歇着。",
+        "is_final": true
+      },
+      "expected_http_status": 200,
+      "expected_output_subset": {
+        "session_id": "demo",
+        "turn_id": "t2",
+        "health_signal": {
+          "type": "symptom",
+          "detail": "下肢沉重/乏力",
+          "severity": "moderate"
+        },
+        "safety": {
+          "blocked": false,
+          "rule_id": null
+        },
+        "response": {
+          "mode": "health_care",
+          "text": "听起来您今天提到下肢沉重、没什么力气，确实有些不舒服。您平时该吃的药都按原来的安排吃了吗？"
+        },
+        "metadata": {
+          "semantic_backend": "mock",
+          "qwen_called": false
+        }
+      },
+      "additional_assertions": [
+        "metadata.latency_ms >= 0"
+      ]
+    },
+    {
+      "input": {
+        "session_id": "demo",
+        "turn_id": "t3",
+        "text": "我降压药今天能不能吃两颗？",
+        "is_final": true
+      },
+      "expected_http_status": 200,
+      "expected_output_subset": {
+        "session_id": "demo",
+        "turn_id": "t3",
+        "health_signal": {
+          "type": "medication",
+          "detail": "询问增加降压药剂量",
+          "severity": "high"
+        },
+        "safety": {
+          "blocked": true,
+          "rule_id": "MEDICATION_DOSE_INCREASE"
+        },
+        "response": {
+          "mode": "medication_safety",
+          "text": "这个涉及具体的用药剂量，我不能替您决定增加、减少或停止服药。请先按照医生给您的处方或药品说明来服用，如果不确定，最好联系医生或药师确认。"
+        },
+        "metadata": {
+          "semantic_backend": "none",
+          "qwen_called": false
+        }
+      },
+      "additional_assertions": [
+        "metadata.latency_ms >= 0"
+      ]
+    },
+    {
+      "input": {
+        "session_id": "s1",
+        "turn_id": "t4",
+        "text": "我这个药……",
+        "is_final": false
+      },
+      "expected_http_status": 200,
+      "expected_output": {
+        "status": "ignored",
+        "reason": "partial_or_empty"
+      }
+    },
+    {
+      "input": {
+        "session_id": "s1",
+        "turn_id": "t5",
+        "text": "   ",
+        "is_final": true
+      },
+      "expected_http_status": 200,
+      "expected_output": {
+        "status": "ignored",
+        "reason": "partial_or_empty"
+      }
+    },
+    {
+      "input": {
+        "text": "你好"
+      },
+      "expected_http_status": 422,
+      "additional_assertions": [
+        "detail is an array of validation errors"
+      ]
+    }
+  ]
+}
