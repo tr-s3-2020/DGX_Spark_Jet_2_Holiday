@@ -51,7 +51,8 @@ from fastapi.responses import FileResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 import uvicorn  # noqa: E402
 
-from skills.elderly_voice_duplex import adapters, config, family_card  # noqa: E402
+from skills.elderly_voice_duplex import (  # noqa: E402
+    adapters, config, family_card, memory)
 from skills.elderly_voice_duplex.duplex import VoiceDuplex  # noqa: E402
 
 logging.basicConfig(level=logging.INFO,
@@ -88,6 +89,7 @@ def pcm_energy(chunk: bytes) -> float:
 async def health():
     return {"ok": True, "asr": config.ASR_BACKEND, "tts": config.TTS_BACKEND,
             "vad": config.VAD_BACKEND, "llm": config.LLM_BASE,
+            "memory": memory.available(),
             "family_card": family_card.available()}
 
 
@@ -97,8 +99,12 @@ async def api_card(elder: str = "老人", elder_id: str = "default"):
 
     elder_id 是 skill4 存储里的命名空间。默认 "default" 给页面用；
     探针/测试传别的值，否则会把测试数据写进家属真正看的那份日报里。
+
+    chronicle 是 skill3 的回忆摘要。不传的话 skill4 会把「近期回忆」段显示成
+    "尚未生成"——看着像记忆功能坏了，其实只是没喂数据。
     """
-    return family_card.build_card(elder_id, elder)
+    chrono = await memory.chronicle(elder_id)
+    return family_card.build_card(elder_id, elder, chrono)
 
 
 @app.post("/api/card/dispatch")
@@ -147,6 +153,24 @@ async def voice(ws: WebSocket):
         """状态变化实时下发，客户端靠它显示"在听/在想/在说"。"""
         await send({"type": "state", "state": state.name})
 
+    async def on_recall(transcript: str) -> list[dict]:
+        """状态机要生成回复了，先问 skill3 有没有相关记忆。
+
+        放在 await 链里而不是后台任务：prompt 要靠它拼。skill3 不在或超时
+        返回空列表，通话照常——记忆是增强，不是前提。
+        """
+        try:
+            return await asyncio.wait_for(
+                memory.prepare_turn(session_id, f"T{stats['turns'] + 1}",
+                                    transcript, elder_id),
+                timeout=config.MEMORY_TIMEOUT_S)
+        except asyncio.TimeoutError:
+            log.info("skill3 取记忆超时（不影响本轮回复）")
+            return []
+        except Exception as exc:  # noqa: BLE001
+            log.info("skill3 取记忆失败（不影响本轮回复）: %s", exc)
+            return []
+
     try:
         while True:
             msg = await ws.receive()
@@ -184,7 +208,10 @@ async def voice(ws: WebSocket):
                     vad=adapters.make_vad(), asr=adapters.make_asr(),
                     tts=adapters.make_tts(), llm=adapters.make_llm(),
                     kin=ctrl.get("kin", "孩子"),
-                    on_audio=on_audio, on_state=on_state)
+                    on_audio=on_audio, on_state=on_state,
+                    on_recall=on_recall)
+                # 记忆（skill3）也要跟着这通电话开会话。失败不影响通话。
+                await memory.start(elder_id, session_id)
                 await duplex.start(ctrl.get("greeting"))
                 # 状态由 on_state 推。这里不能再补发一条 duplex.state.name：
                 # 带了开场白时 start() 返回后状态已经是 SPEAKING，
@@ -262,6 +289,13 @@ async def voice(ws: WebSocket):
                 await duplex.close()
             except Exception:  # noqa: BLE001  清理失败不影响已经结束的通话
                 pass
+        # 挂断后 skill3 才开始提炼这一通电话。要等它跑完——不等的话进程
+        # 这边先返回，job 永远停在 queued，记忆一条都不产出。
+        try:
+            await memory.close(elder_id, session_id,
+                               config.MEMORY_DRAIN_S)
+        except Exception:  # noqa: BLE401
+            pass
         # 一通电话的体检报告：帧数/音频量/有多少帧越过人声阈值/收了几轮。
         # "说话没反应"时先看这条——frames=0 说明音频根本没到，
         # speech_frames=0 说明麦克风没出声或太轻，turns=0 说明没收轮。

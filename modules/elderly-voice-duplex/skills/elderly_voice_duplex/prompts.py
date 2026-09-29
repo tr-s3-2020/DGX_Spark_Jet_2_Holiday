@@ -215,7 +215,23 @@ def check_safety(text: str, kin: str = DEFAULT_KIN) -> tuple[str, str] | None:
     return None
 
 
-def build_reply_prompt(partial: str, history: list[dict], kin: str) -> str:
-    """主回复的系统提示（历史由调用方按 messages 传入）。"""
-    return (SYSTEM_PROMPT
-            + "\n\n老人的子女称呼为「" + kin + "」，提及家人时用这个称呼。")
+def build_reply_prompt(partial: str, history: list[dict], kin: str,
+                       memories: list | None = None) -> str:
+    """主回复的系统提示（历史由调用方按 messages 传入）。
+
+    memories 是 skill3 取回的相关记忆。有就自然接上，没有就不提——
+    明确告诉模型"这些是老人以前说过的"，它才会用来接话，而不是凭空编。
+    """
+    prompt = (SYSTEM_PROMPT
+              + "\n\n老人的子女称呼为「" + kin + "」，提及家人时用这个称呼。")
+    if memories:
+        lines = []
+        for m in memories[:3]:
+            text = (m.get("summary") or m.get("content") or m.get("text")
+                    if isinstance(m, dict) else str(m))
+            if text:
+                lines.append(f"· {text}")
+        if lines:
+            prompt += ("\n\n老人以前说过这些相关的事，可以自然接上（不要复述"
+                       "「您说过」，就当自己记得）：\n" + "\n".join(lines))
+    return prompt

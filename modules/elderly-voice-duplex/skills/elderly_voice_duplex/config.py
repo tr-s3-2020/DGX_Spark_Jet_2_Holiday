@@ -49,6 +49,14 @@ BARGE_IN_HOLD_MS = _i("EVD_BARGE_IN_HOLD_MS", 120)
 # 停嘴后留一小段静默再开始听，避免把 TTS 的尾音当成老人插话。
 BARGE_IN_COOLDOWN_MS = _i("EVD_BARGE_IN_COOLDOWN_MS", 250)
 
+# ---------------------------------------------------------------- 记忆（skill3）
+# 取记忆的超时。语音链路上老人已经在等了，这个值必须远小于整轮预算——
+# 取不到记忆顶多是"不接以前的话"，让老人干等才是真问题。
+MEMORY_TIMEOUT_S = _f("EVD_MEMORY_TIMEOUT_S", 3.0)
+# 挂断后等 skill3 后台提炼跑完的上限。不等的话 job 永远停在 queued，
+# 记忆一条都不产出；但也不能让挂断动作一直卡着。
+MEMORY_DRAIN_S = _f("EVD_MEMORY_DRAIN_S", 90.0)
+
 # ---------------------------------------------------------------- LLM
 LLM_BASE = os.environ.get("EVD_LLM_BASE", "http://127.0.0.1:8000/v1")
 LLM_MODEL = os.environ.get("EVD_LLM_MODEL", "qwen3.6-35b-a3b")

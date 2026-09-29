@@ -38,6 +38,7 @@ class TurnResult:
     was_filler: bool = False
     safety_level: str = ""
     ttft_ms: int = 0
+    memories: list = field(default_factory=list)
     events: list[str] = field(default_factory=list)
 
 
@@ -50,7 +51,8 @@ class VoiceDuplex:
                  min_speech_ms: int | None = None,
                  scorer: HesitationScorer | None = None,
                  on_audio=None,
-                 on_state=None):
+                 on_state=None,
+                 on_recall=None):
         self.vad = vad
         self.asr = asr
         self.tts = tts
@@ -67,6 +69,9 @@ class VoiceDuplex:
         # 第二遍：那一遍既让老人听到重复内容，又白等一倍合成时间。
         self.on_audio = on_audio          # async (text, pcm) -> None
         self.on_state = on_state          # async (DuplexState) -> None
+        # 生成回复前问上层要相关记忆。返回 list[dict]；失败返回空列表。
+        # 放在 await 链里（不是后台任务）：prompt 要靠它拼。
+        self.on_recall = on_recall        # async (transcript) -> list[dict]
         self.state = DuplexState.IDLE
         self.history: list[dict] = []
         self._partial = ""
@@ -271,9 +276,13 @@ class VoiceDuplex:
         t0 = time.monotonic()
         first_at: float | None = None
         parts: list[str] = []
+        # 先问上层要这一轮相关的记忆（skill3）。放在流式之前：prompt 要靠
+        # 它拼。拿不到就用空列表，不影响本轮回复。
+        recalled = await self._recall(self._partial)
+        result.memories = recalled
         async for delta in self.llm.stream(
                 system=build_reply_prompt(self._partial, self.history,
-                                          self.kin),
+                                          self.kin, recalled),
                 history=self.history,
                 user=self._partial,
                 think=False):          # 语音链路关思考，见 adapters/llm_vllm.py
@@ -295,6 +304,16 @@ class VoiceDuplex:
         return result
 
     # ------------------------------------------------------------ 说话/打断
+
+    async def _recall(self, transcript: str) -> list[dict]:
+        """向上一层要相关记忆。没接 hook 或失败都返回空列表。"""
+        if self.on_recall is None or not transcript:
+            return []
+        try:
+            items = await self.on_recall(transcript)
+            return list(items or [])
+        except Exception:  # noqa: BLE001  记忆是增强，不是前提
+            return []
 
     async def _speak(self, text: str):
         """切到 SPEAKING 并把播放丢到后台任务。不阻塞调用方。"""

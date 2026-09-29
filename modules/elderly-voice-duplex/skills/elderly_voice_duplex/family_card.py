@@ -139,8 +139,14 @@ def _today_signals(svc, elder_id: str) -> list[dict]:
         return []
 
 
-def build_card(elder_id: str, elder_name: str = "老人") -> dict:
-    """生成今日卡片。返回 {"ok":bool, "card":dict|None, "reason":str}。"""
+def build_card(elder_id: str, elder_name: str = "老人",
+               chronicle: dict | None = None) -> dict:
+    """生成今日卡片。返回 {"ok":bool, "card":dict|None, "reason":str}。
+
+    chronicle 是 skill3 的回忆摘要（已按 skill4 的 normalize_c_chronicle
+    转好）。不传的话 skill4 会把「近期回忆」段显示成"尚未生成"——语音链路
+    没接 skill3 时就会看到那句，看着像功能坏了，其实只是没喂数据。
+    """
     svc = _service()
     if svc is None:
         return {"ok": False, "reason": "skill4 不可用"}
@@ -152,7 +158,8 @@ def build_card(elder_id: str, elder_name: str = "老人") -> dict:
             svc.execute("set_consent", {"elder_id": elder_id, "scopes": SCOPES})
         today = datetime.now(timezone.utc).date().isoformat()
         out = svc.execute("build_daily_digest", {
-            "elder_id": elder_id, "date": today, "elder_name": elder_name})
+            "elder_id": elder_id, "date": today, "elder_name": elder_name,
+            "chronicle": chronicle or {}})
         if out.get("status") == "error":
             return {"ok": False,
                     "reason": (out.get("error") or {}).get("message", "")}
