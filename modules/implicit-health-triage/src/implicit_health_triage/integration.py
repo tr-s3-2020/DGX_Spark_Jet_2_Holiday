@@ -11,12 +11,7 @@ service stays free of neighbour-specific concerns.
 
 from __future__ import annotations
 
-from datetime import datetime
-try:                      # datetime.UTC 是 3.11 才加的
-    from datetime import UTC
-except ImportError:       # 3.10 兼容
-    from datetime import timezone
-    UTC = timezone.utc
+from datetime import datetime, timezone
 
 from .schemas import (
     ConversationTurn,
@@ -86,7 +81,7 @@ def to_digest_record(
         return None
 
     return HealthSignalRecord(
-        timestamp=timestamp or datetime.now(UTC).isoformat(timespec="seconds"),
+        timestamp=timestamp or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         type=result.health_signal.type,
         detail=result.health_signal.detail,
         severity=result.health_signal.severity,
