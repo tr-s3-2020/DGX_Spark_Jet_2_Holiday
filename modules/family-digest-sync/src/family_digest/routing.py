@@ -39,7 +39,23 @@ class RoutingDecision:
         }
 
 
-def summarize_acquisition(records: Sequence[HealthSignalRecord]) -> Acquisition:
+def summarize_acquisition(
+    records: Sequence[HealthSignalRecord],
+    safety: Sequence[SafetyEventRecord] = (),
+) -> Acquisition:
+    """判定"今天到底采集到没有"。
+
+    ⚠️ 两条腿都要看，只看任何一条都会得出方向相反的结论：
+
+    - 只看 B 的 health record：纯语音场景（A 抛 safety event，B 一条 record
+      都没有）会被判成 ``not_acquired`` —— 可真相是「聊得很好，而且出了 P0」；
+    - 只看 A 的 safety event：B 正常跑完却无信号的日子会被漏判。
+
+    A 只要给出了明确分级（P0/P1），就说明**老人开口说了被识别出的风险句**，
+    这本身就是采集成功。
+    """
+    if any(s.has_signal() for s in safety):
+        return Acquisition.ACQUIRED
     if not records:
         return Acquisition.NOT_ACQUIRED
     if any(r.acquisition() is Acquisition.ACQUIRED for r in records):
@@ -70,7 +86,7 @@ def route(
         return RoutingDecision(
             tier=Tier.P0,
             reasons=sorted(set(reasons)),
-            acquisition=summarize_acquisition(today_records),
+            acquisition=summarize_acquisition(today_records, today_safety),
             degraded_suspected=any(r.looks_degraded() for r in today_records),
         )
 
@@ -80,6 +96,12 @@ def route(
         for r in today_records
     ):
         reasons.append("single_day_high")
+
+    # ---- P1：语音侧 P1 映射（不自创，来源就是 A 的分级）----
+    # 不写这一条的话，A 明确判定「需要留意」的话会在 D 里被静默丢掉，
+    # 家属侧完全感知不到——这比误报更糟。
+    if any(s.safety_level is SafetyLevel.P1 for s in today_safety):
+        reasons.append("voice_safety_p1")
 
     # ---- P1：跨日趋势 ----
     for st in trend.trending_types(history, elder_id, for_date, policy):
@@ -104,13 +126,13 @@ def route(
         return RoutingDecision(
             tier=Tier.P1,
             reasons=sorted(set(reasons)),
-            acquisition=summarize_acquisition(today_records),
+            acquisition=summarize_acquisition(today_records, today_safety),
             degraded_suspected=any(r.looks_degraded() for r in today_records),
         )
 
     return RoutingDecision(
         tier=Tier.P2,
         reasons=["routine"],
-        acquisition=summarize_acquisition(today_records),
+        acquisition=summarize_acquisition(today_records, today_safety),
         degraded_suspected=any(r.looks_degraded() for r in today_records),
     )

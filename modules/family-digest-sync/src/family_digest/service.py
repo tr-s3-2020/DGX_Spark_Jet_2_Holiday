@@ -186,6 +186,7 @@ class FamilyDigestService:
             granted=granted,
             degraded_suspected=decision.degraded_suspected,
             acquisition=decision.acquisition,
+            safety=today_safety,
         )
         card.status = CardStatus.VALIDATED
         self.store.put_card(card.model_dump(mode="json"))

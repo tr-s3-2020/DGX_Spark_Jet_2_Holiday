@@ -283,6 +283,8 @@ def normalize_a_safety(
         occurred_at=stamp,
         safety_level=SafetyLevel(level or "none"),
         text=str(_pick(raw, "text", default="")),
+        session_id=session_id,
+        turn_id=turn_id,
     )
 
 

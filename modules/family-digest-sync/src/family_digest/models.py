@@ -185,10 +185,24 @@ class SafetyEventRecord(BaseModel):
     occurred_at: datetime
     safety_level: SafetyLevel = SafetyLevel.NONE
     text: str = Field(default="", description="原文仅进程内使用，不落盘、不进卡片原文")
+    #: 触发这句话的会话/轮次。A 的 WebSocket 消息里这两个字段可选，
+    #: 缺省为空 —— 卡片 sources 只有在非空时才收进来。
+    session_id: str = ""
+    turn_id: str = ""
 
     @property
     def local_date(self) -> date:
         return self.occurred_at.date()
+
+    def source_ref(self) -> str:
+        """``session_id:turn_id``，缺任一段就返回空串（不该出现在 sources 里）。"""
+        if self.session_id and self.turn_id:
+            return f"{self.session_id}:{self.turn_id}"
+        return ""
+
+    def has_signal(self) -> bool:
+        """是否真的给出了分级判定（区分于「本轮没有触发」）。"""
+        return self.safety_level is not SafetyLevel.NONE
 
 
 class ChronicleInput(BaseModel):
