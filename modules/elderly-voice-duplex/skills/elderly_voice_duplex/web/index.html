@@ -251,6 +251,13 @@
   const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://")
                + location.hostname + ":8100" + "/ws/voice";
   const KIN = "小明";            // 老人对子女的称呼
+  // elder_id 是 skill3/skill4 存储里的命名空间，默认 "default"。
+  // 用 URL 参数改：http://host:8100/?elder_id=test2
+  // 为什么要改：skill4 的卡片按 (elder_id, 日期, tier) 幂等缓存，同一天
+  // 同一个 elder 建过卡就定型，后分享的内容不上来。换个 elder_id 就是
+  // 全新的一天，测试分享功能时省得等明天。
+  const ELDER_ID = new URLSearchParams(location.search).get("elder_id")
+                     || "default";
   // 每帧样本数：20ms @ 16kHz。必须和服务端 duplex.py 的算法一致——
   // 服务端按"喂进来的音频字节数"算老人说了多久，帧大小对不上时长就算错。
   const FRAME_SAMPLES = 320;
@@ -620,7 +627,8 @@
 
   async function loadCard() {
     try {
-      const r = await fetch("api/card?elder=" + encodeURIComponent(KIN));
+      const r = await fetch("api/card?elder=" + encodeURIComponent(KIN)
+                            + "&elder_id=" + encodeURIComponent(ELDER_ID));
       const res = await r.json();
       renderCard(res);
       // 卡片是当天幂等缓存的：建过就定型，后分享的内容不上来。这种要明说，
@@ -704,7 +712,8 @@
 
     ws.onopen = () => {
       connected = true;
-      ws.send(JSON.stringify({ type: "start", kin: KIN }));
+      ws.send(JSON.stringify({ type: "start", kin: KIN,
+                              elder_id: ELDER_ID }));
       btnAnswer.disabled = true;
       btnHangup.disabled = false;
       setState("LISTENING");
