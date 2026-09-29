@@ -91,15 +91,7 @@ skill1 有一层确定性正则（改药量、急症、跌倒），命中就直�
 另一个坑是推理内容在 vLLM 0.19 里落在 `reasoning` 字段而不是 OpenAI 的
 `reasoning_content`，读错字段会把思考当答案。
 
-**⑤ ASR/TTS 选型是实测出来的，不是挑有名的。**
-同一批中文合成音频上，NVIDIA Nemotron ASR 平均 CER 66.8%（全是同音字错：
-「降压药」→「酱鸭药」），而 Paraformer-zh + ct-punc 是 1.3% 且「降压药」识别正确。
-**同音字错误会让医疗围栏直接失配**，这是不可接受的风险，所以选了后者。
-TTS 上 MagpieTTS 中文有缺陷（「您」→「你」失去敬语、「降压药」→「将鸭药」、
-短句崩坏），edge-tts 中文清楚。选型依据全部记在
-`modules/elderly-voice-duplex/docs/SDK-CHOICES.md`。
-
-**⑥ 隐私是默认值，不是可选项。**
+**⑤ 隐私是默认值，不是可选项。**
 skill3 的条目默认 `allowed_uses=["conversation"]`，只有老人明确说「这个讲给孩子听」
 （或点「分享」按钮）才提升为可分享；偏好/近况类条目更是被硬性排除在家属视图外。
 skill4 的卡片用确定性模板渲染，不让模型自由发挥，且原文不进卡片、不落盘。
@@ -271,7 +263,7 @@ ASR 从 Nemotron 换成 Paraformer、TTS 从 MagpieTTS 换成 edge-tts，
 **先写能复现 bug 的测试，再修**——本次多个 bug 都是靠「把 bug 放回去、确认测试会红」
 验证过的。
 
-## 3. 技术栈
+## 3. 软件栈
 
 ### 3.1 NVIDIA SDK
 
@@ -297,30 +289,7 @@ scripts/                       模型转换、vLLM 启动与补丁、chat/agent 
 > 仓库只同步 skill 开发内容。模型权重、venv、缓存、日志等部署产物一律不入库
 > （见 `.gitignore` 的白名单）。
 
-## 5. 测试
-
-```bash
-# skill1（不需要声卡/GPU 的用假后端）
-cd modules/elderly-voice-duplex/skills/elderly_voice_duplex
-python3 tests/test_barge_in.py       # 打断 20 项
-python3 tests/test_safety_fence.py   # 围栏正反例
-python3 tests/test_ws_protocol.py    # 协议层 11 项
-python3 tests/test_ws_audio.py       # 真实音频走完整链路（需先起服务）
-python3 tests/test_voice_loop.py     # ASR→LLM→TTS 闭环 + TTS 回读
-python3 tests/test_family_card.py    # A→D 14 项
-python3 tests/test_memory.py         # skill3 接线 22 项（EVD_MEMORY_E2E=1 跑慢路径）
-node    tests/test_web_framing.js    # 网页客户端 30 项
-
-# skill2/3/4 与编排层
-cd modules/family-digest-sync && python3 -m pytest tests/ -q     # 84 项
-cd modules/orchestrator       && python3 -m pytest tests/ -q     # 20 项
-```
-
-累计 **200+ 项**测试（skill1 六套件 100 项 + skill4 84 + 编排层 20，
-另有 duplex_live / voice_loop / ws_audio 等真实后端场景）。其中每一条回归用例都对应一个真实踩过的坑，
-docstring 里写了它冲着什么。
-
-### 5.1 实测界面
+## 5. 实测界面
 
 一次通话的网页端截图，左右两栏分别是老人端和家属端。这一屏里能同时看到三条主线：
 
