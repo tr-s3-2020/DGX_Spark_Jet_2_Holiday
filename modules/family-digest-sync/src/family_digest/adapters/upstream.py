@@ -34,6 +34,7 @@ from ..models import (
     SafetyEventRecord,
     SafetyLevel,
 )
+from ..timeutil import normalize_stamp
 
 # --------------------------------------------------------------------------
 # 中文枚举 -> D 内部规范形（英文）
@@ -212,7 +213,7 @@ def normalize_b_digest_record(
     ts = raw.get("timestamp")
     if isinstance(ts, str) and ts:
         try:
-            stamp = datetime.fromisoformat(ts)
+            stamp = normalize_stamp(ts)  # 兼容 Z 后缀（3.10 不认）
         except ValueError:
             stamp = datetime.now()
     else:

@@ -22,6 +22,7 @@
 docs/
   module-4-scope.md            任务边界（我做什么、不做什么）
   to-b-interface-reply.md      给任务二 B 的接口回执（含三项待其确认）
+  bugfix-datetime-z.md         ★ 3.10 时间戳 bug 的修复说明（含前后对照）
 modules/family-digest-sync/
   SKILL.md                     ★ 技能定义：宿主/Agent 怎么调用我
   README.md                    模块说明、运行方式、验证过的行为
@@ -31,7 +32,7 @@ modules/family-digest-sync/
                                chain_smoke（A/B/C 报文串联）、live_b_to_d（★ 真跑 B 的代码）
   references/                  宿主契约、上游契约与坑、卡片模板与禁用措辞
   examples/                    四个场景 + 三份运行日志
-  tests/                       54 项
+  tests/                       68 项（含 3.10 回归）
 ```
 
 **本分支只新增文件，不改动任何已有文件**，合入主分支零冲突。
@@ -41,12 +42,15 @@ modules/family-digest-sync/
 ```bash
 cd modules/family-digest-sync
 pip install -e .
-python -m pytest tests/ -q                    # 54 项应全过
+python -m pytest tests/ -q                    # 68 项应全过
 python scripts/digest_cli.py --scenario examples/scenario_p1_trend.json --channel console --reset
 python scripts/host_invoke_demo.py            # 产出 examples/host-invocation-log.md
 ```
 
 不需要 GPU、不需要模型服务、不需要网络。
+
+已在 **真实 CPython 3.10.21** 上验证 68 项全过（本模块声明 `>=3.10`，
+CI 会在 3.10/3.11/3.12/3.13 四个版本上跑）。
 
 ## 与上游的联调状态
 
