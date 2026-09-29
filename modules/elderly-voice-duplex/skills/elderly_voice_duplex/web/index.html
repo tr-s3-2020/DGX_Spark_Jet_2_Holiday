@@ -621,7 +621,14 @@
   async function loadCard() {
     try {
       const r = await fetch("api/card?elder=" + encodeURIComponent(KIN));
-      renderCard(await r.json());
+      const res = await r.json();
+      renderCard(res);
+      // 卡片是当天幂等缓存的：建过就定型，后分享的内容不上来。这种要明说，
+      // 不然用户以为分享失败了。
+      if (res.stale) {
+        addNote("今天早先已生成过卡片，新分享的内容要明天才会体现",
+                "warn");
+      }
     } catch (e) {
       renderCard({ ok: false, reason: "读不到服务端" });
     }

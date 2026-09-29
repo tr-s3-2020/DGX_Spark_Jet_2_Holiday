@@ -233,6 +233,30 @@ def clear_share(session_id: str) -> None:
     _share_marks.pop(session_id, None)
 
 
+async def _extraction_state(svc, elder_id: str, session_id: str) -> str:
+    """本次通话的提炼 job 状态：ok / failed / none。
+
+    「分享了一句但卡片没变化」最常见的成因就是提炼失败——条目是提炼创建
+    的，提炼失败了就一个字都没有，后面全免谈。所以必须先说清楚这件事，
+    不能只报"提升 0 条"（那听着像"没啥可分享"，把人往错方向引）。
+    """
+    try:
+        res = await _call(svc, elder_id, "list_jobs", user_id=elder_id)
+        jobs = (res.get("data") or {}).get("items") or []
+        mine = [j for j in jobs
+                if (j.get("snapshot") or {}).get("session_id") == session_id
+                and j.get("kind") == "session_extract"]
+        if not mine:
+            return "none"
+        if any(j.get("state") == "failed" for j in mine):
+            return "failed"
+        if any(j.get("state") in ("queued", "running") for j in mine):
+            return "pending"
+        return "ok"
+    except Exception:  # noqa: BLE401  查不到状态不影响主流程
+        return "unknown"
+
+
 async def promote_shared(elder_id: str, session_id: str) -> dict:
     """把标了"分享"的轮次产出的条目提升为可分享。
 
@@ -245,16 +269,18 @@ async def promote_shared(elder_id: str, session_id: str) -> dict:
     """
     turns = _share_marks.get(session_id)
     if not turns:
-        return {"promoted": 0, "skipped": 0, "entries": [], "note": ""}
+        return {"promoted": 0, "skipped": 0, "entries": [], "note": "",
+                "extraction": "none"}
     svc = _service()
     if svc is None:
         return {"promoted": 0, "skipped": 0, "entries": [],
-                "note": "skill3 不可用"}
+                "note": "skill3 不可用", "extraction": "unknown"}
+    extraction = await _extraction_state(svc, elder_id, session_id)
     try:
         ent = await _call(svc, elder_id, "list_entries", user_id=elder_id)
         items = (ent.get("data") or {}).get("items") or []
         wanted = {(session_id, t) for t in turns}
-        promoted, skipped, names = 0, 0, []
+        promoted, skipped, names, unshared = 0, 0, [], []
         for e in items:
             refs = {(r.get("session_id"), r.get("turn_id"))
                     for r in e.get("source_refs") or []}
@@ -263,7 +289,9 @@ async def promote_shared(elder_id: str, session_id: str) -> dict:
             if "family_digest" in (e.get("allowed_uses") or []):
                 continue                      # 已经分享过了
             if e.get("kind") not in ("story", "detail"):
-                skipped += 1                 # 偏好/观察不进家属视图
+                # 偏好/近况：skill4 的家属视图不展示这类，明说而不是假装成功
+                skipped += 1
+                unshared.append(e.get("content") or "")
                 continue
             res = await _call(
                 svc, elder_id, "revise_entry", entry_id=e["entry_id"],
@@ -273,16 +301,27 @@ async def promote_shared(elder_id: str, session_id: str) -> dict:
             if res.get("status") == "ok":
                 promoted += 1
                 names.append(e.get("content") or "")
+
         note = ""
-        if skipped:
-            note = "其中 %d 条是偏好/近况，skill4 的家属视图不展示这类" % skipped
+        if extraction == "failed":
+            note = ("提炼失败（skill3 后台 job 的模型输出没通过校验），"
+                    "这一句没有存下来，让老人再说一遍即可")
+        elif extraction == "pending":
+            note = "提炼还没跑完，稍后卡片才会更新"
+        elif not promoted and not skipped:
+            note = "这一句没有产出可分享的条目"
+        elif skipped:
+            note = ("其中 %d 条是偏好/近况，skill4 的家属视图不展示这类"
+                    % skipped)
         return {"promoted": promoted, "skipped": skipped,
-                "entries": names, "note": note}
+                "entries": names, "note": note, "extraction": extraction,
+                "unshared": unshared}
     except Exception as exc:  # noqa: BLE401
         log.warning("提升分享条目失败: %s: %s", type(exc).__name__, exc,
                     exc_info=True)
         return {"promoted": 0, "skipped": 0, "entries": [],
-                "note": f"{type(exc).__name__}: {exc}"}
+                "note": f"{type(exc).__name__}: {exc}",
+                "extraction": extraction}
 
 
 def shutdown() -> None:

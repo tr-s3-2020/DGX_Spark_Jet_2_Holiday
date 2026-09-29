@@ -109,7 +109,24 @@ async def api_card(elder: str = "老人", elder_id: str = "default"):
              ("None" if chrono is None else
               f"state={chrono.get('state')} items={len(chrono.get('items') or [])}"
               f" narrative={str(chrono.get('narrative'))[:60]!r}"))
-    return family_card.build_card(elder_id, elder, chrono)
+    res = family_card.build_card(elder_id, elder, chrono)
+    # skill4 的卡片按 (elder_id, 日期, tier) **幂等缓存**：今天建过就定型，
+    # 之后新分享的内容不会反映上去。检测到"回忆有内容但卡片里没有"就明说，
+    # 否则用户会以为分享失败了——这个坑今天已经绊了我好几次。
+    res["stale"] = _card_is_stale(res, chrono)
+    return res
+
+
+def _card_is_stale(res: dict, chrono: dict | None) -> bool:
+    """回忆有内容，但卡片正文里没体现——说明拿到的是当天早先建的旧卡。"""
+    if not chrono or not str(chrono.get("narrative") or "").strip():
+        return False
+    card = res.get("card") or {}
+    for sec in card.get("sections") or []:
+        if sec.get("heading") == "近期回忆" and \
+                str(sec.get("body") or "").strip():
+            return False
+    return True
 
 
 @app.post("/api/card/dispatch")
@@ -319,9 +336,15 @@ async def voice(ws: WebSocket):
                                config.MEMORY_DRAIN_S)
             if memory.shared_turns(session_id):
                 out = await memory.promote_shared(elder_id, session_id)
-                log.info("分享给家属: 提升 %d 条，跳过 %d 条 %s",
-                         out.get("promoted", 0), out.get("skipped", 0),
-                         out.get("note") or "")
+                # 提炼失败要当成 warning：这是"分享了但卡片没变化"最常见的
+                # 成因，而它本身不抛异常，只报"提升 0 条"根本看不出来。
+                line = ("分享给家属: 提炼=%s 提升 %d 条 跳过 %d 条 %s"
+                        % (out.get("extraction"), out.get("promoted", 0),
+                           out.get("skipped", 0), out.get("note") or ""))
+                if out.get("extraction") == "failed" or out.get("note"):
+                    log.warning(line)
+                else:
+                    log.info(line)
                 memory.clear_share(session_id)
         except Exception:  # noqa: BLE401
             pass
