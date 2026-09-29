@@ -168,6 +168,32 @@ def build_filler_prompt(partial: str, max_chars: int) -> str:
 # 确定性的关键词/正则预过滤：命中就直接返回标准话术，根本不进模型。
 # 好处是零依赖、可单测、行为确定；Guardrails 后续可作为第二层叠加。
 
+# 老人说"这句讲给家属听"时的识别。这是**授权动作**，不是内容判定，
+# 所以宁可漏认也不要误认——误认会把老人没打算分享的话推给家属。
+# 漏认了还能点按钮，按钮才是主路径。
+SHARE_PATTERNS: tuple[str, ...] = (
+    r"(这个|这句|这话|这些|刚才).{0,8}(讲|说|告诉|转告).{0,6}"
+    r"(孩子|儿子|女儿|家属|孙)",
+    r"(分享|转告|讲).{0,4}(给|跟)?.{0,4}(家属|孩子|儿子|女儿)",
+)
+
+
+def wants_share(text: str, kin: str = "") -> bool:
+    """这句话是不是在要求"讲给家属听"。"""
+    import re
+    if not text:
+        return False
+    for pattern in SHARE_PATTERNS:
+        if re.search(pattern, text):
+            return True
+    # 称呼是动态的（小明/丽丽…），所以子女名字也要能触发
+    if kin and len(kin) >= 2:
+        if re.search(r"(这个|这句|这话|这些|刚才).{0,8}"
+                     r"(讲|说|告诉|转告).{0,6}" + re.escape(kin), text):
+            return True
+    return False
+
+
 SAFETY_PATTERNS: tuple[tuple[str, str], ...] = (
     # (正则, 分级)
     # ---- P0：改变药量/用量。问法远不止"吃两颗" ----

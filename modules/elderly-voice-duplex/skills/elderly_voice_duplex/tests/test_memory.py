@@ -112,6 +112,31 @@ async def main() -> int:
                     chrono is None or isinstance(chrono, dict),
                     str(type(chrono)))
 
+        # ---- 分享意图识别：宁可漏认也不要误认 ----
+        # 误认会把老人没打算分享的话推给家属，那是隐私事故；
+        # 漏认了还能点按钮（按钮才是主路径）。
+        from skills.elderly_voice_duplex.prompts import wants_share
+        yes = ["这个讲给孩子听", "这句讲给小明听", "刚才那段说给女儿听",
+               "分享给家属", "转告给孩子"]
+        no = ["今天天气不错", "我那个降压药今天能不能吃两颗",
+              "小明说周末要来看我", "孩子挺好的吧", "我要去买菜了"]
+        for t in yes:
+            ok &= check(f"识别分享意图: {t!r}", wants_share(t, "小明"))
+        for t in no:
+            ok &= check(f"不误判为分享: {t!r}", not wants_share(t, "小明"))
+        ok &= check("空输入不误判", not wants_share("", "小明"))
+
+        # 标记/清理必须按通话隔离
+        memory.mark_share("sessA", "T1")
+        memory.mark_share("sessA", "T2")
+        memory.mark_share("sessB", "T1")
+        ok &= check("分享标记按通话隔离",
+                    memory.shared_turns("sessA") == ["T1", "T2"]
+                    and memory.shared_turns("sessB") == ["T1"],
+                    str(memory.shared_turns("sessA")))
+        memory.clear_share("sessA")
+        ok &= check("清理后不留痕迹", memory.shared_turns("sessA") == [])
+
         # ---- 慢路径：真跑一遍提炼，验证记忆真的能存下来 ----
         if os.environ.get("EVD_MEMORY_E2E"):
             print("  （E2E）关 session 触发提炼，等它跑完…")

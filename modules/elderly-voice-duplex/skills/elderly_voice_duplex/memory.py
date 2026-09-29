@@ -215,9 +215,77 @@ async def close(elder_id: str, session_id: str,
                  type(exc).__name__, exc)
 
 
+# session_id -> 老人要求"讲给家属听"的轮次。必须是每通话一份：
+# 共用一个模块级变量的话两通电话会互相覆盖。
+_share_marks: dict[str, set[str]] = {}
+
+
+def mark_share(session_id: str, turn_id: str) -> None:
+    """标记这一轮要分享给家属。"""
+    _share_marks.setdefault(session_id, set()).add(turn_id)
+
+
+def shared_turns(session_id: str) -> list[str]:
+    return sorted(_share_marks.get(session_id, ()))
+
+
+def clear_share(session_id: str) -> None:
+    _share_marks.pop(session_id, None)
+
+
+async def promote_shared(elder_id: str, session_id: str) -> dict:
+    """把标了"分享"的轮次产出的条目提升为可分享。
+
+    skill3 的隐私模型：条目默认 allowed_uses=["conversation"]，只有显式
+    revise_entry(set_allowed_uses) 提升后才进 family_digest 视图；
+    而 preference/observation 类条目**根本不进家属视图**（_allowed 里写死）。
+    所以这里只提升 story/detail，偏好类会如实告诉调用方"这类不能分享"。
+
+    必须在挂断后的提炼跑完再调——条目是那时候才创建的。
+    """
+    turns = _share_marks.get(session_id)
+    if not turns:
+        return {"promoted": 0, "skipped": 0, "entries": [], "note": ""}
+    svc = _service()
+    if svc is None:
+        return {"promoted": 0, "skipped": 0, "entries": [],
+                "note": "skill3 不可用"}
+    try:
+        ent = await _call(svc, elder_id, "list_entries", user_id=elder_id)
+        items = (ent.get("data") or {}).get("items") or []
+        wanted = {(session_id, t) for t in turns}
+        promoted, skipped, names = 0, 0, []
+        for e in items:
+            refs = {(r.get("session_id"), r.get("turn_id"))
+                    for r in e.get("source_refs") or []}
+            if not refs & wanted:
+                continue
+            if "family_digest" in (e.get("allowed_uses") or []):
+                continue                      # 已经分享过了
+            if e.get("kind") not in ("story", "detail"):
+                skipped += 1                 # 偏好/观察不进家属视图
+                continue
+            res = await _call(
+                svc, elder_id, "revise_entry", entry_id=e["entry_id"],
+                expected_version=e["version"], action="set_allowed_uses",
+                allowed_uses=["conversation", "family_digest"],
+                decision_ref="consent")
+            if res.get("status") == "ok":
+                promoted += 1
+                names.append(e.get("content") or "")
+        note = ""
+        if skipped:
+            note = "其中 %d 条是偏好/近况，skill4 的家属视图不展示这类" % skipped
+        return {"promoted": promoted, "skipped": skipped,
+                "entries": names, "note": note}
+    except Exception as exc:  # noqa: BLE401
+        log.warning("提升分享条目失败: %s: %s", type(exc).__name__, exc,
+                    exc_info=True)
+        return {"promoted": 0, "skipped": 0, "entries": [],
+                "note": f"{type(exc).__name__}: {exc}"}
+
+
 def shutdown() -> None:
-    """进程退出前关掉 skill3。通话结束**不能**调它——服务是进程级单例，
-    关了下一通电话就 "memory service is closed"（实测）。"""
     global _svc, _tried
     svc, _svc, _tried = _svc, None, False
     if svc is None:
@@ -261,9 +329,14 @@ async def chronicle(elder_id: str = "default") -> dict | None:
         raw["view_version"] = str(ver) if ver not in (None, "") else None
         narrative = (raw.get("content") or {}).get("narrative")
         if isinstance(narrative, list):
+            # 每条形如 {"text": "据本人讲述：…", "event_refs": [...], ...}。
+            # 取 text 字段，不能 str() 整个 dict——那会把 Python repr
+            # （"{'event_refs': ...}"）当成回忆正文显示给家属。
             raw = dict(raw)
             raw["content"] = dict(raw.get("content") or {})
-            raw["content"]["narrative"] = "\n".join(str(x) for x in narrative)
+            raw["content"]["narrative"] = "\n".join(
+                x.get("text", "") if isinstance(x, dict) else str(x)
+                for x in narrative)
         parsed = normalize_c_chronicle(raw)
         return parsed.model_dump(mode="json")
     except Exception as exc:  # noqa: BLE401

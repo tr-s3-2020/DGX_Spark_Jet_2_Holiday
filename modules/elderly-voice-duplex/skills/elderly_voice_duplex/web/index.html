@@ -62,6 +62,11 @@
                       margin: auto; }
   .turn { max-width: 88%; padding: 9px 13px; border-radius: 14px;
           white-space: pre-wrap; word-break: break-word; }
+  .share-btn { font: inherit; font-size: 11px; margin-left: 8px;
+               padding: 1px 8px; border: 1px solid var(--ring);
+               border-radius: 999px; background: transparent;
+               color: var(--muted); cursor: pointer; min-height: 0; }
+  .share-btn:disabled { opacity: .5; cursor: default; }
   .elder { align-self: flex-end; background: var(--accent-soft);
            border-bottom-right-radius: 4px; }
   .ai    { align-self: flex-start; background: var(--bg);
@@ -282,6 +287,23 @@
     const div = document.createElement("div");
     div.className = "turn " + cls;
     div.textContent = text;
+    // 老人说的每句话旁边给一个「分享」：点了才把这一轮提升为可分享。
+    // 不给默认全分享——skill3 的条目默认只在本对话里用，推给家属要老人
+    // 自己点头（这是隐私授权，不是内容判定）。
+    if (cls === "elder") {
+      const btn = document.createElement("button");
+      btn.className = "share-btn";
+      btn.type = "button";
+      btn.textContent = "分享";
+      btn.title = "把这句话讲给家属听";
+      btn.addEventListener("click", () => {
+        if (!connected || ws === null || ws.readyState !== 1) return;
+        ws.send(JSON.stringify({ type: "share" }));
+        btn.disabled = true;
+        btn.textContent = "已分享";
+      });
+      div.appendChild(btn);
+    }
     logEl.appendChild(div);
     logEl.scrollTop = logEl.scrollHeight;
   }
@@ -692,6 +714,10 @@
           if (msg.state === "BARGED_IN") stopPlayback();
           break;
         case "transcript": addTurn("elder", msg.text); break;
+        case "shared":
+          addNote("✓ " + msg.text);
+          loadCard();                       // 分享可能要过一会儿才进卡片
+          break;
         case "judge":     addNote("（在想词）"); break;
         case "filler":    addTurn("ai", msg.text); break;
         case "reply":

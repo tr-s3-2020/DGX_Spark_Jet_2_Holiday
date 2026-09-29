@@ -54,6 +54,7 @@ import uvicorn  # noqa: E402
 from skills.elderly_voice_duplex import (  # noqa: E402
     adapters, config, family_card, memory)
 from skills.elderly_voice_duplex.duplex import VoiceDuplex  # noqa: E402
+from skills.elderly_voice_duplex.prompts import wants_share  # noqa: E402
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -104,6 +105,10 @@ async def api_card(elder: str = "老人", elder_id: str = "default"):
     "尚未生成"——看着像记忆功能坏了，其实只是没喂数据。
     """
     chrono = await memory.chronicle(elder_id)
+    log.info("卡片 elder_id=%s chronicle=%s", elder_id,
+             ("None" if chrono is None else
+              f"state={chrono.get('state')} items={len(chrono.get('items') or [])}"
+              f" narrative={str(chrono.get('narrative'))[:60]!r}"))
     return family_card.build_card(elder_id, elder, chrono)
 
 
@@ -220,6 +225,15 @@ async def voice(ws: WebSocket):
                 log.info("通话开始 kin=%s elder_id=%s",
                          ctrl.get("kin"), elder_id)
 
+            elif kind == "share" and duplex is not None:
+                # 老人点「分享给家属」：把刚才那一轮标成要分享。
+                # 真正提升条目要等挂断后的提炼跑完（条目那时候才创建）。
+                turn_id = f"T{max(stats['turns'], 1)}"
+                memory.mark_share(session_id, turn_id)
+                await send({"type": "shared", "turn": turn_id,
+                            "text": "好，这句我讲给家人听。"})
+                log.info("标记分享 %s/%s", session_id, turn_id)
+
             elif kind == "audio" and duplex is not None:
                 # 能量以服务端自己算的为准，客户端的只当兜底（见 pcm_energy）
                 energy = max(float(ctrl.get("energy", 0.0)),
@@ -254,6 +268,14 @@ async def voice(ws: WebSocket):
                             None, family_card.record_safety, elder_id,
                             session_id, f"T{stats['turns']}",
                             result.safety_level, result.transcript)
+                    # 老人亲口说"这句讲给孩子听"：也算分享请求。
+                    # 语音是**辅助**路径（怕误认，所以宁漏勿滥），按钮才是主路径。
+                    if wants_share(result.transcript, duplex.kin):
+                        memory.mark_share(session_id,
+                                          f"T{stats['turns']}")
+                        await send({"type": "shared",
+                                    "turn": f"T{stats['turns']}",
+                                    "text": "好，这句我讲给家人听。"})
                     # 老人说的话也要回显：原来协议里只有 partial（离线 ASR
                     # 给不出），页面上永远看不到自己说了什么。
                     if result.transcript:
@@ -292,8 +314,15 @@ async def voice(ws: WebSocket):
         # 挂断后 skill3 才开始提炼这一通电话。要等它跑完——不等的话进程
         # 这边先返回，job 永远停在 queued，记忆一条都不产出。
         try:
+            # 先等提炼跑完——条目是那时候才创建的，提前提升会找不到
             await memory.close(elder_id, session_id,
                                config.MEMORY_DRAIN_S)
+            if memory.shared_turns(session_id):
+                out = await memory.promote_shared(elder_id, session_id)
+                log.info("分享给家属: 提升 %d 条，跳过 %d 条 %s",
+                         out.get("promoted", 0), out.get("skipped", 0),
+                         out.get("note") or "")
+                memory.clear_share(session_id)
         except Exception:  # noqa: BLE401
             pass
         # 一通电话的体检报告：帧数/音频量/有多少帧越过人声阈值/收了几轮。
