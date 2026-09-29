@@ -244,6 +244,13 @@ async def voice(ws: WebSocket):
         except Exception:  # noqa: BLE001
             pass
     finally:
+        # 挂断时可能还有话在后台合成/播放。不在这里收掉，事件循环关闭时会
+        # 看到 "Task was destroyed but it is pending!"，而且 TTS 还在往外打。
+        if duplex is not None:
+            try:
+                await duplex.close()
+            except Exception:  # noqa: BLE001  清理失败不影响已经结束的通话
+                pass
         # 一通电话的体检报告：帧数/音频量/有多少帧越过人声阈值/收了几轮。
         # "说话没反应"时先看这条——frames=0 说明音频根本没到，
         # speech_frames=0 说明麦克风没出声或太轻，turns=0 说明没收轮。

@@ -101,6 +101,9 @@ async def run_one(name: str, spec: dict) -> bool:
     for word in spec.get("must_contain", []) or []:
         if word not in result.reply:
             print(f"  FAIL 回答里缺少: {word!r}"); ok = False
+    # 播放是后台任务：不等它结束就返回的话，事件循环关闭时会看到
+    # "Task was destroyed but it is pending!"
+    await d.close()
     if ok:
         print("  ok")
     return ok

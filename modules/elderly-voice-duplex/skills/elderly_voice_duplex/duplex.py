@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -127,11 +128,32 @@ class VoiceDuplex:
             await self._speak(greeting)
 
     async def hangup(self) -> None:
-        """挂断。"""
+        """挂断。停嘴、收掉后台播放，等它真的结束再返回。"""
         self._cancel_speech = True
         self._speech_started_at = None
         self._speech_bytes = 0
+        await self._stop_playback()
         self._enter(DuplexState.IDLE)
+
+    async def close(self) -> None:
+        """释放资源。测试和长驻进程退出前调用，避免留下 pending task。"""
+        await self.hangup()
+        await self.flush_state()
+
+    async def _stop_playback(self) -> None:
+        """取消并等掉后台播放任务。
+
+        不 await 掉就返回的话，事件循环关闭时会看到
+        "Task was destroyed but it is pending!"，而且合成可能还在跑。
+        """
+        task, self._tts_task = self._tts_task, None
+        if task is None or task.done():
+            return
+        task.cancel()
+        try:
+            await task
+        except BaseException:  # noqa: BLE001  CancelledError 也走这条
+            pass
 
     # ------------------------------------------------------------ 音频入口
 
@@ -145,7 +167,7 @@ class VoiceDuplex:
             if speaking and energy >= config.BARGE_IN_ENERGY:
                 self._silence_since = self._silence_since or now
                 if (now - self._silence_since) * 1000 >= config.BARGE_IN_HOLD_MS:
-                    return self._barge_in()
+                    return await self._barge_in()
             else:
                 self._silence_since = None
             return None
@@ -217,7 +239,6 @@ class VoiceDuplex:
             result.filler = filler
             result.was_filler = True
             await self._speak(filler)
-            self._enter(DuplexState.LISTENING, result)
             return result
 
         if judgement.signal is TurnSignal.UNCERTAIN:
@@ -227,7 +248,6 @@ class VoiceDuplex:
                 result.filler = filler
                 result.was_filler = True
                 await self._speak(filler)
-                self._enter(DuplexState.LISTENING, result)
                 return result
             # 否则当作说完了，继续走完整回复
 
@@ -244,7 +264,8 @@ class VoiceDuplex:
             result.reply = text
             await self._speak(text)
             self._remember(self._partial, text)
-            self._enter(DuplexState.LISTENING, result)
+            # 这里不能再 _enter(LISTENING)：播放已经丢到后台了，状态要等
+            # _play 真的说完才回去。提前回去会让打断检测整段失效。
             return result
 
         t0 = time.monotonic()
@@ -266,34 +287,59 @@ class VoiceDuplex:
         result.reply = reply
         if result.ttft_ms > config.TTFT_BUDGET_MS:
             result.events.append(f"ttft_over_budget({result.ttft_ms}ms)")
+        # 播放不在这里等：_speak 只负责切到 SPEAKING 并把播放丢到后台。
+        # 要是 await 到合成结束，上层（WebSocket）就一直在等，收不到后面的
+        # 音频帧，老人想插话时 _barge_in 根本没机会被调用。
         await self._speak(reply)
         self._remember(self._partial, reply)
-        self._enter(DuplexState.LISTENING, result)
         return result
 
     # ------------------------------------------------------------ 说话/打断
 
     async def _speak(self, text: str):
-        """播放一句话。可被 barge-in 取消。"""
+        """切到 SPEAKING 并把播放丢到后台任务。不阻塞调用方。"""
+        # 上一段没播完就又要说（只会是开场白紧接着的极端情况），先收掉
+        old, self._tts_task = self._tts_task, None
+        if old is not None and not old.done():
+            old.cancel()
         self._cancel_speech = False
         self._enter(DuplexState.SPEAKING)
         # 先让 SPEAKING 到客户端，再出声音，否则客户端会先播音频后变状态
         await self.flush_state()
+        try:
+            self._tts_task = asyncio.get_running_loop().create_task(
+                self._play(text))
+        except RuntimeError:            # 没有事件循环（同步单测）：退化成同步播
+            await self._play(text)
+
+    async def _play(self, text: str):
+        """后台播放一句话。可被 barge-in 取消。"""
         try:
             audio = await self.tts.speak(
                 text, should_stop=lambda: self._cancel_speech)
             # 被插话打断时这一段已经作废，不要推给客户端
             if audio and self.on_audio is not None and not self._cancel_speech:
                 await self.on_audio(text, audio)
+        except asyncio.CancelledError:
+            raise                          # 被打断：正常路径，别吞
+        except Exception as exc:  # noqa: BLE001  合成失败不能让通话断掉
+            logging.getLogger(__name__).warning(
+                "播放失败（不影响后续通话）: %s: %s", type(exc).__name__, exc)
         finally:
             if not self._cancel_speech:
+                # 说完了才回 LISTENING。被打断时 _barge_in 已经放过这个状态，
+                # 这里再放一次会把客户端的状态机退回去。
+                self._silence_since = None
                 self._enter(DuplexState.LISTENING)
+            self._tts_task = None
 
-    def _barge_in(self) -> TurnResult:
+    async def _barge_in(self) -> TurnResult:
+        """老人插话：立刻停嘴，已说出口的部分作废。"""
         result = TurnResult(state=self.state, transcript=self._partial)
         self._cancel_speech = True
-        if self._tts_task and not self._tts_task.done():
-            self._tts_task.cancel()
+        # 必须等任务真的结束再返回：不 await 的话，_play 可能已经把合成好的
+        # 音频递给上层了，客户端于是"明明打断了还是听到整句"。
+        await self._stop_playback()
         self._silence_since = None
         result.events.append("barge_in")
         self._enter(DuplexState.LISTENING, result)

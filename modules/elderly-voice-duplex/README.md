@@ -17,7 +17,7 @@
 | 部分 | 状态 |
 |---|---|
 | 在想词判定 + 垫音 | ✅ 完成，已对真实 Qwen3.6 验证（4/4 场景通过） |
-| 全双工状态机（含打断） | ✅ 完成，文本后端可测 |
+| 全双工状态机（含打断） | ✅ 完成，文本后端可测；WebSocket 上打断已实测生效 |
 | 医疗安全围栏 | ✅ 完成，P0/P1 分级 + 标准话术 |
 | LLM 链路（流式 + 关思考） | ✅ 完成，**首字延迟 109ms**（预算 500ms） |
 | ASR（Paraformer + ct-punc） | ✅ 中文 CER 1.3%，降压药识别正确 |
@@ -49,8 +49,34 @@ python3 tests/test_ws_audio.py       # 真实音频走完整 WebSocket 链路
 python3 tests/test_ws_protocol.py    # 不起进程、纯假后端，验证协议层
 python3 tests/test_voice_loop.py     # ASR->LLM->TTS 闭环 + TTS 回读校验
 python3 tests/test_family_card.py    # A→D：安全分级进 skill4 卡片
+python3 tests/test_barge_in.py       # 打断：插话要能立刻停嘴
 node    tests/test_web_framing.js    # 网页客户端攒帧/重采样逻辑
 ```
+
+## 打断（barge-in）是怎么接上的
+
+播放必须由状态机自己发起（要据此进 SPEAKING，否则无从判断打断），所以 `_speak`
+只负责切状态，然后把合成丢到**后台任务**：
+
+```
+feed_audio ──收轮──► _respond ──► _speak ──切 SPEAKING、起 _play 后台任务──► 返回
+                                              │
+服务端继续 ws.receive() ◄─────────────────────┘
+        │
+        └─► 老人开口（持续 120ms 超过阈值）──► _barge_in ──取消 _play、回 LISTENING
+```
+
+原来是 `await self._speak(...)` 一路 await 到 TTS 合成结束，那期间上层根本没在
+`ws.receive()`，音频帧全躺在 socket 缓冲区里，`_barge_in` 只有一个入口
+（`feed_audio`）所以永远调不到——症状是"插话完全没反应，整句照常播完"。
+`duplex.py` 里 `_tts_task` / `_cancel_speech` 本来就是为这件事准备的，但从没被赋值。
+
+被打断时**已经合成好的音频也不会推给客户端**：`_barge_in` 会 await 任务真正结束，
+`_play` 里再查一次 `_cancel_speech`。edge-tts 在流式接收中途不查 `should_stop`，
+所以实际靠的是取消任务，不 await 掉就会有"明明打断了还是听到整句"。
+
+实测（`.cache/tmp-work/ws_bargein.py`）：P1 话术整句 11.1s，插话后音频送达
+**0 字节**，状态 470ms 内回 LISTENING。修复前是整句 11.14s 照常播完。
 
 ## 家属卡片（A → D）
 
@@ -103,6 +129,7 @@ modules/elderly-voice-duplex/
             ├── test_ws_protocol.py   协议层回归（不起进程）
             ├── test_voice_loop.py    ASR->LLM->TTS 闭环 + TTS 回读校验
             ├── test_family_card.py   A→D：安全分级进 skill4 卡片
+            ├── test_barge_in.py     打断：插话要能立刻停嘴
             └── test_web_framing.js   网页客户端攒帧/重采样回归
 ```
 

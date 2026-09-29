@@ -137,6 +137,9 @@ async def run_one(name: str, spec: dict, verify_tts: bool = True) -> bool:
             if not heard.strip():
                 print("  FAIL 回读为空")
                 ok = False
+    # 播放是后台任务：不等它结束就返回的话，事件循环关闭时会看到
+    # "Task was destroyed but it is pending!"
+    await duplex.close()
     if ok:
         print("  ok")
     return ok
