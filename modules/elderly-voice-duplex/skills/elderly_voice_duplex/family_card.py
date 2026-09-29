@@ -177,6 +177,40 @@ def build_card(elder_id: str, elder_name: str = "老人",
         return {"ok": False, "reason": f"{type(exc).__name__}: {exc}"}
 
 
+def drop_unsent_cards(elder_id: str) -> int:
+    """作废今天还没推送出去的缓存卡，逼下次建卡时带新回忆重建。
+
+    skill4 的卡片按 (elder_id, 日期, tier) **幂等缓存**：分享之前建过的卡
+    不会因为后来提升了条目而刷新，页面于是永远显示旧的空「近期回忆」。
+    这里把当天未推送的卡删掉，下一次 build_daily_digest 就会重建。
+
+    只删 status 还是 validated 的——已经推给家属的不能动，否则 dispatch
+    找不到卡，家属也收不到更正。
+    """
+    svc = _service()
+    if svc is None:
+        return 0
+    try:
+        today = datetime.now(timezone.utc).date().isoformat()
+        dropped = 0
+        for card_id, card in list((svc.store.data.get("cards") or {}).items()):
+            if card.get("elder_id") != elder_id:
+                continue
+            if card.get("for_date") != today:
+                continue
+            if card.get("status") not in (None, "validated"):
+                continue
+            del svc.store.data["cards"][card_id]
+            dropped += 1
+        if dropped:
+            svc.store.save()
+            log.info("作废今天未推送的缓存卡 %d 张，下次建卡会带新回忆", dropped)
+        return dropped
+    except Exception as exc:  # noqa: BLE401  作废失败不该让挂断卡住
+        log.warning("作废缓存卡失败: %s: %s", type(exc).__name__, exc)
+        return 0
+
+
 def dispatch_card(card_id: str) -> dict:
     """推送卡片给家属。返回 {"ok":bool, ...}。"""
     svc = _service()

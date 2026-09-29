@@ -118,14 +118,25 @@ async def api_card(elder: str = "老人", elder_id: str = "default"):
 
 
 def _card_is_stale(res: dict, chrono: dict | None) -> bool:
-    """回忆有内容，但卡片正文里没体现——说明拿到的是当天早先建的旧卡。"""
-    if not chrono or not str(chrono.get("narrative") or "").strip():
+    """回忆有内容，但卡片正文里没体现——说明拿到的是当天早先建的旧卡。
+
+    注意不能靠"正文非空"判断：skill4 在没回忆时会写
+    「（回忆摘要尚未生成，本次不展示）」/「（暂无可展示的内容）」，
+    这两个占位句也是非空字符串。
+    """
+    if not chrono:
+        return False
+    lines = [str(x).strip() for x in
+             str(chrono.get("narrative") or "").splitlines() if str(x).strip()]
+    if not lines:
         return False
     card = res.get("card") or {}
     for sec in card.get("sections") or []:
-        if sec.get("heading") == "近期回忆" and \
-                str(sec.get("body") or "").strip():
-            return False
+        if sec.get("heading") != "近期回忆":
+            continue
+        body = str(sec.get("body") or "")
+        # 卡片里出现了回忆的任意一句，就不算旧
+        return not any(line in body for line in lines)
     return True
 
 
@@ -345,6 +356,10 @@ async def voice(ws: WebSocket):
                     log.warning(line)
                 else:
                     log.info(line)
+                # 卡片是当天幂等缓存的：不作废的话，这次分享的内容永远上不了
+                # 已经建好的那张卡（只作废还没推给家属的）。
+                if out.get("promoted"):
+                    family_card.drop_unsent_cards(elder_id)
                 memory.clear_share(session_id)
         except Exception:  # noqa: BLE401
             pass

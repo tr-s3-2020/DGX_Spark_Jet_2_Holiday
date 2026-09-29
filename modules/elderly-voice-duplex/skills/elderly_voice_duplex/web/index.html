@@ -705,6 +705,12 @@
     famMeta.textContent = bits.join(" · ");
   }
 
+  // 挂断后服务端还会跑一会儿：skill3 的提炼 + 条目提升都在挂断之后，
+  // 而提升成功后服务端会作废当天未推送的缓存卡，下一次建卡才带得上新回忆。
+  // 所以页面要持续轮询，否则用户挂断前看到的那张空卡就一直挂在屏幕上。
+  setInterval(() => { if (document.visibilityState === "visible") loadCard(); },
+              5000);
+
   // ------------------------------------------------------------- 连接管理
   function connect() {
     ws = new WebSocket(WS_URL);

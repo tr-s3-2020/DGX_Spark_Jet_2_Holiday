@@ -23,6 +23,7 @@ import logging
 import os
 import sys
 import uuid
+from datetime import datetime, timezone
 
 log = logging.getLogger("elderly-voice-duplex.memory")
 
@@ -413,3 +414,4 @@ async def _drain_jobs(svc, elder_id: str, budget: float) -> None:
         if not any(j.get("state") in ("running", "queued") for j in jobs):
             return
         await asyncio.sleep(1.0)
+
