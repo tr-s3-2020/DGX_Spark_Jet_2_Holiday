@@ -14,7 +14,7 @@ client -> server:
 
 server -> client:
   {"type":"state","state":"LISTENING"}
-  {"type":"partial","text":"..."}                  ASR 部分结果
+  {"type":"transcript","text":"..."}                服务端识别到的老人原话
   {"type":"judge","signal":"thinking","reason":"..."}  在想词判定
   {"type":"filler","text":"诶，您慢慢想，我等您。"}
   {"type":"reply","text":"...","ttft_ms":109,"safety":""}
@@ -32,18 +32,26 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import array
 import json
 import logging
 import os
 import sys
+import uuid
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", ".."))
+# 包根是 modules/elderly-voice-duplex/（本文件的祖父目录），这样
+# `import skills.elderly_voice_duplex` 才成立。dirname(__file__) 已经是
+# .../skills/elderly_voice_duplex，所以只要 2 个 ".."；且必须 abspath，
+# os.path.join 不解析 ".."，未规范化的路径进 sys.path 后 import 找不到。
+sys.path.insert(0, os.path.abspath(os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..")))
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # noqa: E402
+from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 import uvicorn  # noqa: E402
 
-from skills.elderly_voice_duplex import adapters, config  # noqa: E402
+from skills.elderly_voice_duplex import adapters, config, family_card  # noqa: E402
 from skills.elderly_voice_duplex.duplex import VoiceDuplex  # noqa: E402
 
 logging.basicConfig(level=logging.INFO,
@@ -52,34 +60,109 @@ log = logging.getLogger("elderly-voice-duplex")
 
 app = FastAPI(title="elderly-voice-duplex")
 
+WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+
+
+def pcm_energy(chunk: bytes) -> float:
+    """按 int16 幅值算一帧的 RMS 能量，除 3000。
+
+    口径必须和 config.VAD_ENERGY_THRESHOLD 一致。原来完全信任客户端报上来
+    的 energy，而不同客户端算法不一样（网页端曾经用 float32 的 RMS × 4，
+    正常说话只有 0.1~0.3），低于 0.35 就被当静音，症状是"接听了说话没反应"。
+    现在服务端自己从音频字节算，客户端的值只当兜底。
+    """
+    n = len(chunk) // 2
+    if n == 0:
+        return 0.0
+    samples = array.array("h")
+    samples.frombytes(chunk[:n * 2])
+    if sys.byteorder == "big":            # array 按本机字节序，PCM 是小端
+        samples.byteswap()
+    total = 0.0
+    for v in samples:
+        total += float(v) * v
+    return min(1.0, (total / n) ** 0.5 / 3000.0)
+
 
 @app.get("/health")
 async def health():
     return {"ok": True, "asr": config.ASR_BACKEND, "tts": config.TTS_BACKEND,
-            "vad": config.VAD_BACKEND, "llm": config.LLM_BASE}
+            "vad": config.VAD_BACKEND, "llm": config.LLM_BASE,
+            "family_card": family_card.available()}
+
+
+@app.get("/api/card")
+async def api_card(elder: str = "老人"):
+    """今日家属卡片。skill4 不在时返回 ok=False，页面显示"暂无"。"""
+    return family_card.build_card("default", elder)
+
+
+@app.post("/api/card/dispatch")
+async def api_card_dispatch(body: dict):
+    """把卡片推给家属。card_id 由 /api/card 的响应带回来。"""
+    return family_card.dispatch_card(str(body.get("card_id") or ""))
+
+
+@app.get("/")
+async def index():
+    """网页客户端。getUserMedia 要安全上下文，从服务端打开比 file:// 稳。"""
+    page = os.path.join(WEB_DIR, "index.html")
+    if not os.path.exists(page):
+        return {"detail": "网页客户端不在 web/index.html", "ws": "/ws/voice"}
+    return FileResponse(page)
+
+
+if os.path.isdir(WEB_DIR):
+    app.mount("/web", StaticFiles(directory=WEB_DIR), name="web")
 
 
 @app.websocket("/ws/voice")
 async def voice(ws: WebSocket):
     await ws.accept()
     duplex: VoiceDuplex | None = None
+    # 最近一帧二进制音频。协议是「音频帧 + 紧随的控制帧」，所以要先缓存，
+    # 等 {"type":"audio"} 到达时一起交给状态机——原来这里直接丢弃，
+    # 导致 ASR 永远拿不到音频，只能靠客户端给的 energy 猜有人声。
+    pending_audio = b""
+    # 通话统计，断开时打一条，排查"说话没反应"全靠它
+    stats = {"frames": 0, "bytes": 0, "speech_frames": 0, "turns": 0}
+    seen_types: list[str] = []
+    # 这次通话的标识，喂给 skill4 做去重键
+    session_id = uuid.uuid4().hex[:12]
 
     async def send(obj: dict):
         await ws.send_text(json.dumps(obj, ensure_ascii=False))
 
-    async def speak(text: str):
-        """把一句回答合成语音推给客户端。"""
-        if not text:
-            return
-        audio = await duplex.tts.speak(text, lambda: False)
-        if audio:
-            await ws.send_bytes(audio)
+    async def on_audio(text: str, pcm: bytes):
+        """状态机合成好一句话，推给客户端。"""
+        await ws.send_bytes(pcm)
+
+    async def on_state(state):
+        """状态变化实时下发，客户端靠它显示"在听/在想/在说"。"""
+        await send({"type": "state", "state": state.name})
 
     try:
         while True:
             msg = await ws.receive()
-            if msg.get("type") == "bytes":
-                continue                       # 音频体，等随后的控制帧
+            # 排查用：把前几条消息的原始形状打出来。浏览器客户端"自检面板
+            # 显示已收音但服务端帧数=0"时，靠这条分清是没发出来还是形状不对。
+            if stats["frames"] + len(seen_types) < 12:
+                seen_types.append(msg.get("type"))
+                log.info("收到消息 #%d type=%s keys=%s bytes=%s text=%s",
+                         stats["frames"] + len(seen_types), msg.get("type"),
+                         sorted(msg.keys()),
+                         len(msg.get("bytes") or b""),
+                         (msg.get("text") or "")[:60])
+            # 注意：ASGI 的原生形状是 {"type":"websocket.receive","bytes":...}，
+            # 不是 {"type":"bytes"}。按后者判断会把每一帧音频都当文本帧丢掉，
+            # 状态机拿到空 chunk——ASR 永远没音频，"说了多久"也永远是 0，
+            # 每一轮都被当噪声忽略。断开消息也要显式收，否则会在这里空转。
+            if msg.get("type") == "websocket.disconnect":
+                break
+            chunk = msg.get("bytes")
+            if chunk is not None:
+                pending_audio = chunk
+                continue
             raw = msg.get("text")
             if raw is None:
                 continue
@@ -90,32 +173,61 @@ async def voice(ws: WebSocket):
                 duplex = VoiceDuplex(
                     vad=adapters.make_vad(), asr=adapters.make_asr(),
                     tts=adapters.make_tts(), llm=adapters.make_llm(),
-                    kin=ctrl.get("kin", "孩子"))
+                    kin=ctrl.get("kin", "孩子"),
+                    on_audio=on_audio, on_state=on_state)
                 await duplex.start(ctrl.get("greeting"))
-                await send({"type": "state", "state": duplex.state.name})
+                # 状态由 on_state 推。这里不能再补发一条 duplex.state.name：
+                # 带了开场白时 start() 返回后状态已经是 SPEAKING，
+                # 补发一条 LISTENING 会让客户端以为我们没在说话。
+                await duplex.flush_state()
                 log.info("通话开始 kin=%s", ctrl.get("kin"))
 
             elif kind == "audio" and duplex is not None:
-                energy = float(ctrl.get("energy", 0.0))
-                result = await duplex.feed_audio(b"", energy)
+                # 能量以服务端自己算的为准，客户端的只当兜底（见 pcm_energy）
+                energy = max(float(ctrl.get("energy", 0.0)),
+                             pcm_energy(pending_audio))
+                stats["frames"] += 1
+                stats["bytes"] += len(pending_audio)
+                if energy >= config.VAD_ENERGY_THRESHOLD:
+                    stats["speech_frames"] += 1
+                result = await duplex.feed_audio(pending_audio, energy)
+                pending_audio = b""
                 if result is None:
                     continue
+                # 状态变化已经由 on_state 实时推过了，这里只补 judge 事件
                 for event in result.events:
                     if event.startswith("judge="):
                         sig = event[6:].split("(", 1)[0]
                         reason = event[6:].split("(", 1)[1].rstrip(")")
                         await send({"type": "judge", "signal": sig,
                                     "reason": reason})
-                    elif event.startswith("->"):
-                        await send({"type": "state", "state": event[2:]})
                 if result.filler:
                     await send({"type": "filler", "text": result.filler})
-                    await speak(result.filler)
                 if result.reply:
+                    stats["turns"] += 1
+                    log.info("收轮 #%d 识别=%r 回复=%r ttft=%dms 分级=%s",
+                             stats["turns"], result.transcript,
+                             result.reply[:40], result.ttft_ms,
+                             result.safety_level or "-")
+                    # A → D：把安全分级喂给 skill4。放在后台做——写盘和
+                    # 导入都不该让老人等。失败只记日志，不影响这轮回复。
+                    if result.safety_level:
+                        asyncio.get_running_loop().run_in_executor(
+                            None, family_card.record_safety, "default",
+                            session_id, f"T{stats['turns']}",
+                            result.safety_level, result.transcript)
+                    # 老人说的话也要回显：原来协议里只有 partial（离线 ASR
+                    # 给不出），页面上永远看不到自己说了什么。
+                    if result.transcript:
+                        await send({"type": "transcript",
+                                    "text": result.transcript})
                     await send({"type": "reply", "text": result.reply,
                                 "ttft_ms": result.ttft_ms,
                                 "safety": result.safety_level})
-                    await speak(result.reply)
+                    # P0 立刻告诉家属：这种不能等日报
+                    if result.safety_level == "P0":
+                        await send({"type": "family_alert",
+                                    "text": result.reply})
 
             elif kind == "hangup":
                 if duplex is not None:
@@ -131,6 +243,16 @@ async def voice(ws: WebSocket):
             await send({"type": "error", "message": str(exc)})
         except Exception:  # noqa: BLE001
             pass
+    finally:
+        # 一通电话的体检报告：帧数/音频量/有多少帧越过人声阈值/收了几轮。
+        # "说话没反应"时先看这条——frames=0 说明音频根本没到，
+        # speech_frames=0 说明麦克风没出声或太轻，turns=0 说明没收轮。
+        log.info("通话结束 帧数=%d 音频=%.1fs 人声帧=%d(%.0f%%) 收轮=%d",
+                 stats["frames"], stats["bytes"] / 2 / config.SAMPLE_RATE,
+                 stats["speech_frames"],
+                 (100.0 * stats["speech_frames"] / stats["frames"]
+                  if stats["frames"] else 0.0),
+                 stats["turns"])
 
 
 def main() -> int:

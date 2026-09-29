@@ -54,6 +54,8 @@ PROFILE=full bash scripts/serve_v019.sh
 # 2. 起 WebSocket 全双工服务
 cd modules/elderly-voice-duplex
 EVD_ASR=funasr EVD_TTS=edge python3 skills/elderly_voice_duplex/server.py --port 8100
+
+# 3. 浏览器打开 http://127.0.0.1:8100/ ，点「接听」授权麦克风
 ```
 
 ASR/TTS 后端可选 `funasr`（Paraformer）/ `edge`（edge-tts）/ `nemo`（Nemotron + MagpieTTS）。
@@ -86,7 +88,26 @@ memory-skill serve --config examples/config.fixture.json --auth examples/auth.fi
 
 ```bash
 cd modules/family-digest-sync
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e '.[dev]'
-python scripts/digest_cli.py --scenario examples/scenario_p0_medication.json
+pip install -e .
+python -m pytest tests/ -q                    # 68 项应全过
+python scripts/digest_cli.py --scenario examples/scenario_p1_trend.json --channel console --reset
+python scripts/host_invoke_demo.py            # 产出 examples/host-invocation-log.md
 ```
+
+不需要 GPU、不需要模型服务、不需要网络。
+
+已在 **真实 CPython 3.10.21** 上验证 68 项全过（本模块声明 `>=3.10`，
+CI 会在 3.10/3.11/3.12/3.13 四个版本上跑）。
+
+#### 与上游的联调状态
+
+| 链路 | 状态 | 证据 |
+|---|---|---|
+| **B → D** | ✅ **真跑通**：subprocess 起 B 的 CLI 拿真实输出喂 D | `examples/live-b-to-d-log.md` |
+| A → D | 契约对齐，未联调（A 是 WebSocket，需 ASR/TTS 环境） | `references/upstream-contracts.md` |
+| C → D | 契约对齐，未联调（C 是 HTTP 8765） | `examples/chain-smoke-log.md` |
+
+#### 待确认（需要群里拍板）
+
+1. **给 B**：新版 `TriageResult` 请加 `degraded: bool`（或保留 `metadata`）。没有它，D 分不清"正常跑完没信号"和"模型挂了被降级"，只能在每次降级时对家属说"本次未能获取"——家属会习惯性忽略日报。D 这边接口已预留，B 一加即生效。
+2. **给 B**：`docs/interfaces.md` 与代码有四处不一致（详见回执第 5 节），其中 `to_digest_record` 会丢 `guardrail_triggered`，那是 P0 的源头之一。

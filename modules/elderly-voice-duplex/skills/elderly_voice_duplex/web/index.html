@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>小伴 · 陪伴电话</title>
+<style>
+  :root {
+    --bg: #f7f4ee;
+    --card: #ffffff;
+    --ink: #2b2723;
+    --muted: #7d746a;
+    --accent: #3f7d5a;
+    --accent-soft: #e3efe7;
+    --danger: #b4503c;
+    --danger-soft: #f6e6e2;
+    --ring: #d8cfc1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1815; --card: #25221e; --ink: #f0ebe3; --muted: #a09689;
+      --accent: #7bb894; --accent-soft: #2b3a32; --danger: #e08a76;
+      --danger-soft: #3a2823; --ring: #3b3630;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB",
+                 "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px
+             max(24px, env(safe-area-inset-bottom));
+  }
+  .wrap { width: 100%; max-width: 460px; display: flex; flex-direction: column;
+          flex: 1; gap: 14px; }
+  header { text-align: center; padding: 8px 0 2px; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: .04em; font-weight: 650; }
+  header p  { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+  .status {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 14px; border-radius: 999px; background: var(--card);
+    border: 1px solid var(--ring); font-size: 15px; color: var(--muted);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted);
+         flex: none; transition: background .2s; }
+  .status[data-state="LISTENING"] .dot { background: var(--accent);
+         animation: pulse 1.6s ease-in-out infinite; }
+  .status[data-state="SPEAKING"]  .dot { background: #c98a2e;
+         animation: pulse .9s ease-in-out infinite; }
+  .status[data-state="THINKING"]  .dot { background: #6b8cba;
+         animation: pulse .6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+  .log {
+    flex: 1; min-height: 180px; overflow-y: auto; padding: 14px;
+    background: var(--card); border: 1px solid var(--ring); border-radius: 16px;
+    font-size: 15px; line-height: 1.65; display: flex; flex-direction: column; gap: 10px;
+  }
+  .log:empty::after { content: "点「接听」开始通话"; color: var(--muted);
+                      margin: auto; }
+  .turn { max-width: 88%; padding: 9px 13px; border-radius: 14px;
+          white-space: pre-wrap; word-break: break-word; }
+  .elder { align-self: flex-end; background: var(--accent-soft);
+           border-bottom-right-radius: 4px; }
+  .ai    { align-self: flex-start; background: var(--bg);
+           border: 1px solid var(--ring); border-bottom-left-radius: 4px; }
+  .note  { align-self: center; font-size: 13px; color: var(--muted);
+           background: none; border: none; padding: 2px; }
+  .warn  { align-self: center; font-size: 13px; color: var(--danger);
+           background: var(--danger-soft); border-radius: 8px; padding: 5px 10px; }
+
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+              padding-top: 4px; }
+  button {
+    -webkit-appearance: none; appearance: none; border: none; cursor: pointer;
+    font: inherit; font-size: 19px; font-weight: 600; padding: 20px 10px;
+    border-radius: 18px; color: #fff; transition: transform .08s, opacity .2s;
+    min-height: 76px;
+  }
+  button:active:not(:disabled) { transform: scale(.97); }
+  button:disabled { opacity: .38; cursor: default; }
+  #answer { background: var(--accent); }
+  #hangup { background: var(--danger); }
+  .hint { text-align: center; font-size: 12.5px; color: var(--muted);
+          line-height: 1.5; }
+  .meter { margin-top: 14px; padding: 10px 12px; border-radius: 12px;
+           background: rgba(127,127,127,.10); font-size: 12px;
+           font-variant-numeric: tabular-nums; }
+  .meter-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .meter-row > span:first-child { width: 3.6em; color: var(--muted);
+                                  flex: none; }
+  .bar { position: relative; flex: 1; height: 8px; border-radius: 4px;
+         background: rgba(127,127,127,.25); overflow: hidden; }
+  .bar i { position: absolute; inset: 0 auto 0 0; width: 0;
+           background: var(--accent); transition: width .08s linear; }
+  .bar b { position: absolute; top: -2px; bottom: -2px; width: 2px;
+           background: var(--danger); }
+  #mVerdict.ok { color: #2ea043; }
+  #mVerdict.warn { color: var(--danger); }
+  .card { margin-top: 16px; padding: 14px; border-radius: 14px;
+          background: var(--bg); border: 1px solid var(--ring);
+          text-align: left; }
+  .card-head { display: flex; align-items: center; gap: 10px; }
+  .card-head h2 { font-size: 15px; margin: 0; flex: 1; }
+  .tier { font-size: 12px; font-weight: 700; padding: 3px 9px;
+          border-radius: 999px; background: var(--accent-soft); }
+  .tier.p0 { background: var(--danger-soft); color: var(--danger); }
+  .tier.p1 { background: var(--accent-soft); }
+  .tier.p2 { background: rgba(127,127,127,.18); color: var(--muted); }
+  .card-title { margin: 8px 0 10px; font-size: 14px; line-height: 1.5; }
+  .card-body { font-size: 13px; line-height: 1.6; }
+  .card-body section { margin-bottom: 10px; }
+  .card-body h3 { font-size: 12.5px; color: var(--muted); margin: 0 0 3px;
+                  font-weight: 600; }
+  .card-body p { margin: 0; white-space: pre-wrap; word-break: break-word; }
+  .card-foot { display: flex; align-items: center; gap: 10px;
+               margin-top: 12px; font-size: 12px; color: var(--muted); }
+  .card-foot span { flex: 1; }
+  #cardSend { font: inherit; font-size: 13px; padding: 6px 12px;
+              border: 1px solid var(--ring); border-radius: 999px;
+              background: var(--accent); color: #fff; cursor: pointer; }
+  #cardSend:disabled { opacity: .45; cursor: default; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>小伴</h1>
+    <p>陪伴电话</p>
+  </header>
+
+  <div class="status" id="status" data-state="IDLE">
+    <span class="dot"></span><span id="statusText">未接通</span>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <div class="controls">
+    <button id="answer" type="button">接听</button>
+    <button id="hangup" type="button" disabled>挂断</button>
+  </div>
+
+  <!-- 采集自检：麦克风有没有在出声音、能量够不够越过 VAD 阈值，
+       一眼能看出来。排查"说话没反应"先看这里。 -->
+  <div class="meter" id="meter" hidden>
+    <div class="meter-row">
+      <span>麦克风</span>
+      <span id="mRate">-</span>
+      <span id="mFps">-</span>
+    </div>
+    <div class="meter-row">
+      <span>能量</span>
+      <span class="bar"><i id="mBar"></i><b id="mThr"></b></span>
+      <span id="mEnergy">-</span>
+    </div>
+    <div class="meter-row">
+      <span>已收音</span>
+      <span id="mSpoken">-</span>
+      <span id="mVerdict">-</span>
+    </div>
+  </div>
+
+  <!-- 家属卡片（skill4）：这一通电话里出现的健康/安全信号汇总。
+       P0 会立刻标红，别等日报。 -->
+  <section class="card" id="card" hidden>
+    <header class="card-head">
+      <h2>家属卡片</h2>
+      <span class="tier" id="cardTier">-</span>
+    </header>
+    <p class="card-title" id="cardTitle">今天还没有需要留意的信号</p>
+    <div class="card-body" id="cardBody"></div>
+    <footer class="card-foot">
+      <span id="cardMeta"></span>
+      <button id="cardSend" type="button" disabled>推送给家属</button>
+    </footer>
+  </section>
+
+  <p class="hint">
+    用手机或电脑浏览器打开本页即可通话。<br>
+    需要允许使用麦克风。说完停一下（约 2 秒）我才会接话。
+  </p>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------------------------------------------------------------- 配置
+  // 服务端地址：默认连本页所在主机的 8100 端口。
+  // 换机器时改成 ws://<服务器IP>:8100
+  const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://")
+               + location.hostname + ":8100" + "/ws/voice";
+  const KIN = "小明";            // 老人对子女的称呼
+  // 每帧样本数：20ms @ 16kHz。必须和服务端 duplex.py 的算法一致——
+  // 服务端按"喂进来的音频字节数"算老人说了多久，帧大小对不上时长就算错。
+  const FRAME_SAMPLES = 320;
+  const SAMPLE_RATE = 16000;
+  // createScriptProcessor 的 buffer 必须是 2 的幂（256~16384）。
+  // 这里取 2048，再自己攒够 FRAME_SAMPLES 才发一帧——不能拿 buffer 大小
+  // 当帧大小用，5120 这种值浏览器直接抛异常，麦克风根本起不来。
+  const PROC_BUFFER = 2048;
+
+  const statusEl = document.getElementById("status");
+  const statusText = document.getElementById("statusText");
+  const logEl = document.getElementById("log");
+  const btnAnswer = document.getElementById("answer");
+  const btnHangup = document.getElementById("hangup");
+
+  let ws = null;
+  let audioCtx = null;
+  let micStream = null;
+  let sourceNode = null;
+  let processor = null;
+  let connected = false;
+
+  const STATE_TEXT = {
+    IDLE: "未接通", LISTENING: "正在听您说", THINKING: "正在想",
+    SPEAKING: "正在说话", BARGED_IN: "听到您说话了",
+  };
+
+  function setState(s) {
+    statusEl.dataset.state = s;
+    statusText.textContent = STATE_TEXT[s] || s;
+  }
+
+  function addTurn(cls, text) {
+    const div = document.createElement("div");
+    div.className = "turn " + cls;
+    div.textContent = text;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function addNote(text, cls) {
+    const div = document.createElement("div");
+    div.className = "turn " + (cls || "note");
+    div.textContent = text;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ------------------------------------------------------- 播放 AI 的语音
+  // 服务端推回的是 PCM16 16kHz 单声道裸流，切成 16 样本对齐的缓冲播。
+  let playQueue = [];
+  let playTime = 0;
+
+  function pcmToAudioBuffer(pcmBytes) {
+    const n = pcmBytes.byteLength / 2;
+    const buf = audioCtx.createBuffer(1, n, SAMPLE_RATE);
+    const ch = buf.getChannelData(0);
+    const view = new DataView(pcmBytes);
+    for (let i = 0; i < n; i++) ch[i] = view.getInt16(i * 2, true) / 32768;
+    return buf;
+  }
+
+  function playPcm(pcmBytes) {
+    if (!pcmBytes || !pcmBytes.byteLength) return;
+    const buf = pcmToAudioBuffer(pcmBytes);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    // 简单排队：按当前时间依次播放，避免互相覆盖
+    const now = audioCtx.currentTime;
+    const start = Math.max(now, playTime);
+    src.start(start);
+    playTime = start + buf.duration;
+  }
+
+  // ------------------------------------------------------------- 采音推流
+  function floatTo16BitPCM(float32Array) {
+    // new DataView 的第一个参数必须是 ArrayBuffer，不能直接给长度——
+    // 给长度会抛 "First argument to Dataview constructor must be an
+    // ArrayBuffer"，于是每帧都在发送前炸掉，服务端一帧都收不到。
+    const out = new DataView(new ArrayBuffer(float32Array.length * 2));
+    let offset = 0;
+    for (let i = 0; i < float32Array.length; i++, offset += 2) {
+      const s = Math.max(-1, Math.min(1, float32Array[i]));
+      out.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return out.buffer;
+  }
+
+  // ------------------------------------------------------------- 采集自检
+  // 服务端的 VAD 阈值是按「int16 幅值的 RMS 除 3000」定的，客户端必须用
+  // 同一个口径算能量。之前用 float32 的 RMS × 4，量纲对不上：真实麦克风
+  // 的正常说话只有 0.1~0.3，掉在 0.35 阈值下面，整句话都被当静音丢掉，
+  // 表现就是"接听了说话没反应"。
+  const VAD_THRESHOLD = 0.35;
+  const meterEl = document.getElementById("meter");
+  const mRate = document.getElementById("mRate");
+  const mFps = document.getElementById("mFps");
+  const mBar = document.getElementById("mBar");
+  const mThr = document.getElementById("mThr");
+  const mEnergy = document.getElementById("mEnergy");
+  const mSpoken = document.getElementById("mSpoken");
+  const mVerdict = document.getElementById("mVerdict");
+
+  let framesSent = 0;
+  let lastEnergy = 0;
+  let speechMs = 0;
+  let sendError = "";
+
+  function updateMeter() {
+    mRate.textContent = micRate + "Hz";
+    mFps.textContent = framesSent + " 帧";
+    mEnergy.textContent = lastEnergy.toFixed(2);
+    mBar.style.width = Math.min(100, lastEnergy * 100) + "%";
+    mThr.style.left = (VAD_THRESHOLD * 100) + "%";
+    mSpoken.textContent = (speechMs / 1000).toFixed(1) + "s";
+    if (sendError) {
+      mVerdict.textContent = "发送失败：" + sendError;
+      mVerdict.className = "warn";
+    } else if (framesSent === 0) {
+      mVerdict.textContent = "没有采到音";
+      mVerdict.className = "warn";
+    } else if (speechMs < 350) {
+      mVerdict.textContent = "还没到判定时长";
+      mVerdict.className = "warn";
+    } else if (lastEnergy < VAD_THRESHOLD) {
+      mVerdict.textContent = "太轻，说大声点";
+      mVerdict.className = "warn";
+    } else {
+      mVerdict.textContent = "已收音";
+      mVerdict.className = "ok";
+    }
+  }
+
+  function frameEnergy(float32Array) {
+    let sum = 0;
+    for (let i = 0; i < float32Array.length; i++) {
+      const s = float32Array[i] * 32768;      // 换到 int16 量纲
+      sum += s * s;
+    }
+    return Math.min(1, Math.sqrt(sum / float32Array.length) / 3000);
+  }
+
+  // onaudioprocess 每次给的是 PROC_BUFFER 个样本，和服务端要的帧大小
+  // 不一致，所以先攒在这儿，够了才切一帧出去。
+  let micRemainder = new Float32Array(0);
+  // AudioContext 的实际采样率。构造时请求 16kHz，但 Safari 会忽略这个参数
+  // 直接用硬件速率（常见 48kHz）。这时采到的样本必须重采样，否则服务端按
+  // 16kHz 解释这段 PCM，老人会听到快三倍的声音。
+  let micRate = SAMPLE_RATE;
+
+  function resampleTo16k(float32) {
+    if (micRate === SAMPLE_RATE) return float32;
+    const ratio = micRate / SAMPLE_RATE;
+    const n = Math.floor(float32.length / ratio);
+    const out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const pos = i * ratio;
+      const i0 = Math.floor(pos);
+      const frac = pos - i0;
+      const a = float32[i0];
+      const b = float32[Math.min(i0 + 1, float32.length - 1)];
+      out[i] = a + (b - a) * frac;
+    }
+    return out;
+  }
+
+  function pushMicFrame(float32) {
+    const frame = resampleTo16k(float32);
+    const merged = new Float32Array(micRemainder.length + frame.length);
+    merged.set(micRemainder, 0);
+    merged.set(frame, micRemainder.length);
+    let offset = 0;
+    while (merged.length - offset >= FRAME_SAMPLES) {
+      sendMicFrame(merged.subarray(offset, offset + FRAME_SAMPLES));
+      offset += FRAME_SAMPLES;
+    }
+    micRemainder = merged.slice(offset);
+  }
+
+  function sendMicFrame(frame) {
+    if (!connected || ws === null || ws.readyState !== 1) return;
+    const energy = frameEnergy(frame);
+    lastEnergy = energy;
+    framesSent++;
+    // 帧数攒够约每秒刷一次自检面板
+    if (framesSent % 25 === 0 || energy >= VAD_THRESHOLD) {
+      speechMs = energy >= VAD_THRESHOLD
+        ? Math.min(speechMs + frame.length / SAMPLE_RATE * 1000, 99999)
+        : 0;
+      updateMeter();
+    }
+    // 发送失败必须显式报出来：framesSent 已经自增过，如果这里静默失败，
+    // 自检面板照样显示"已收音"，而服务端一帧都收不到——症状就是
+    // "面板有反应但服务端帧数=0"，非常难查。
+    try {
+      ws.send(floatTo16BitPCM(frame));                   // 二进制帧
+      ws.send(JSON.stringify({ type: "audio",            // 紧随控制帧
+                               energy: energy }));
+    } catch (e) {
+      sendError = String(e && e.message || e);
+      updateMeter();
+    }
+  }
+
+  async function startMic() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({
+      sampleRate: SAMPLE_RATE,
+    });
+    // 浏览器要求有用户手势才让 AudioContext 出声；没 resume 的话
+    // currentTime 不走，TTS 音频会被排在一个永远不到达的时间点上。
+    if (audioCtx.state !== "running") await audioCtx.resume();
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true,
+               noiseSuppression: true, autoGainControl: true },
+    });
+    sourceNode = audioCtx.createMediaStreamSource(micStream);
+    micRemainder = new Float32Array(0);
+    micRate = audioCtx.sampleRate;
+    framesSent = 0;
+    speechMs = 0;
+    meterEl.hidden = false;
+    updateMeter();
+    if (micRate !== SAMPLE_RATE) {
+      addNote("浏览器实际采样率 " + micRate + "Hz，已自动重采样到 "
+              + SAMPLE_RATE + "Hz", "warn");
+    }
+    processor = audioCtx.createScriptProcessor(PROC_BUFFER, 1, 1);
+    processor.onaudioprocess = (e) => {
+      pushMicFrame(e.inputBuffer.getChannelData(0));
+    };
+    sourceNode.connect(processor);
+    // 必须接到 destination，否则某些浏览器不触发 onaudioprocess。
+    // 输出缓冲我们没写，是静音，不会把麦克风回放出来。
+    processor.connect(audioCtx.destination);
+  }
+
+  function stopMic() {
+    if (processor) { processor.onaudioprocess = null;
+                     try { processor.disconnect(); } catch (e) {} }
+    if (sourceNode) { try { sourceNode.disconnect(); } catch (e) {} }
+    if (micStream) { micStream.getTracks().forEach(t => t.stop()); }
+    processor = sourceNode = micStream = null;
+    micRemainder = new Float32Array(0);   // 别把半帧留给下一通电话
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+    playQueue = []; playTime = 0;
+  }
+
+  // ------------------------------------------------------- 家属卡片（skill4）
+  const cardEl = document.getElementById("card");
+  const cardTier = document.getElementById("cardTier");
+  const cardTitle = document.getElementById("cardTitle");
+  const cardBody = document.getElementById("cardBody");
+  const cardMeta = document.getElementById("cardMeta");
+  const cardSend = document.getElementById("cardSend");
+  let cardId = "";
+
+  const TIER_TEXT = { P0: "立即关注", P1: "今天留意", P2: "今日摘要" };
+
+  function renderCard(res) {
+    cardEl.hidden = false;
+    if (!res || !res.ok) {
+      cardTier.textContent = "暂无";
+      cardTier.className = "tier p2";
+      cardTitle.textContent = "家属卡片暂不可用";
+      cardBody.innerHTML = "";
+      cardMeta.textContent = (res && res.reason) || "skill4 未接入";
+      cardSend.disabled = true;
+      return;
+    }
+    const card = res.card;
+    if (!card) {
+      cardTier.textContent = "P2";
+      cardTier.className = "tier p2";
+      cardTitle.textContent = "今天还没有需要留意的信号";
+      cardBody.innerHTML = "";
+      cardMeta.textContent = "这一通电话里没有出现健康或安全信号";
+      cardSend.disabled = true;
+      return;
+    }
+    const tier = String(card.tier || "P2").toUpperCase();
+    cardId = card.card_id || "";
+    cardTier.textContent = TIER_TEXT[tier] || tier;
+    cardTier.className = "tier " + tier.toLowerCase();
+    cardTitle.textContent = card.title || "";
+    cardBody.innerHTML = "";
+    (card.sections || []).forEach(s => {
+      const sec = document.createElement("section");
+      const h = document.createElement("h3");
+      h.textContent = s.heading || "";
+      const p = document.createElement("p");
+      p.textContent = s.body || "";
+      sec.appendChild(h); sec.appendChild(p);
+      cardBody.appendChild(sec);
+    });
+    const bits = [];
+    // 触发原因必须显示：skill4 的卡片正文只渲染健康记录，而语音侧只能产出
+    // safety event，所以纯语音 P0 的卡片会写着"今天没有需要特别说明的健康
+    // 观察"——没有这一行，家属会被那句话误导。已报给 skill4 负责人。
+    const reasons = (res.routing && res.routing.reasons) || [];
+    if (reasons.length) bits.push("触发原因 " + reasons.join("、"));
+    if (card.sources && card.sources.length) bits.push("来源 " + card.sources.join("、"));
+    if (card.redacted) bits.push("已脱敏");
+    if (card.acquisition && card.acquisition !== "acquired") {
+      bits.push("skill4 判定本次未取得完整健康信息");
+    }
+    cardMeta.textContent = bits.join(" · ");
+    cardSend.disabled = false;
+  }
+
+  async function loadCard() {
+    try {
+      const r = await fetch("api/card?elder=" + encodeURIComponent(KIN));
+      renderCard(await r.json());
+    } catch (e) {
+      renderCard({ ok: false, reason: "读不到服务端" });
+    }
+  }
+
+  cardSend.addEventListener("click", async () => {
+    if (!cardId) return;
+    cardSend.disabled = true;
+    cardSend.textContent = "推送中…";
+    try {
+      const r = await fetch("api/card/dispatch", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: cardId }) });
+      const out = await r.json();
+      cardSend.textContent = out.ok ? "已推送" : "推送失败";
+      addNote(out.ok ? "卡片已推送给家属" : ("推送失败：" + (out.reason || "")),
+              out.ok ? "" : "warn");
+    } catch (e) {
+      cardSend.textContent = "推送失败";
+    }
+  });
+
+  // ------------------------------------------------------------- 连接管理
+  function connect() {
+    ws = new WebSocket(WS_URL);
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+      connected = true;
+      ws.send(JSON.stringify({ type: "start", kin: KIN }));
+      btnAnswer.disabled = true;
+      btnHangup.disabled = false;
+      setState("LISTENING");
+      loadCard();
+    };
+    ws.onmessage = (ev) => {
+      if (typeof ev.data !== "string") { playPcm(ev.data); return; }
+      const msg = JSON.parse(ev.data);
+      switch (msg.type) {
+        case "state":     setState(msg.state); break;
+        case "transcript": addTurn("elder", msg.text); break;
+        case "judge":     addNote("（在想词）"); break;
+        case "filler":    addTurn("ai", msg.text); break;
+        case "reply":
+          addTurn("ai", msg.text);
+          if (msg.safety) addNote("已通知家人", "warn");
+          loadCard();                       // 卡片可能因为这轮变了
+          break;
+        case "family_alert":
+          addNote("⚠ " + msg.text, "warn");
+          loadCard();
+          break;
+        case "error":     addNote("出错了：" + msg.message, "warn"); break;
+      }
+    };
+    ws.onclose = () => { connected = false; hangup(); };
+    ws.onerror = () => { addNote("连不上服务端，请确认服务已启动", "warn"); };
+  }
+
+  function hangup() {
+    connected = false;
+    if (meterEl) meterEl.hidden = true;
+    if (ws && ws.readyState === 1) {
+      try { ws.send(JSON.stringify({ type: "hangup" })); } catch (e) {}
+    }
+    if (ws) { ws.onclose = null; ws.close(); }
+    ws = null;
+    stopMic();
+    btnAnswer.disabled = false;
+    btnHangup.disabled = true;
+    setState("IDLE");
+  }
+
+  // 识别到的老人话显示在右侧气泡：由服务端的 reply 事件反向填不方便，
+  // 这里用 Web Speech 不可用时退化为「只听不显示」。
+  btnAnswer.addEventListener("click", async () => {
+    logEl.innerHTML = "";
+    try {
+      await startMic();
+    } catch (e) {
+      addNote("无法使用麦克风：" + e.message, "warn");
+      return;
+    }
+    connect();
+  });
+  btnHangup.addEventListener("click", hangup);
+})();
+</script>
+</body>
+</html>

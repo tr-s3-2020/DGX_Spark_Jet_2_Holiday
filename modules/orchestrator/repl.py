@@ -29,6 +29,12 @@ sys.path.insert(0, HERE)
 
 from orchestrator import Orchestrator  # noqa: E402
 
+
+def _today() -> str:
+    """skill4 建卡用的日期。本地时区即可——卡片是给今天看的。"""
+    from datetime import date
+    return date.today().isoformat()
+
 BANNER = """\
 ┌──────────────────────────────────────────────────────────────┐
 │  老人陪伴 · 四方联调 REPL                                      │
@@ -138,30 +144,31 @@ async def main() -> int:
                 continue
             if text == "/digest":
                 try:
-                    from datetime import datetime, timezone
-                    today = datetime.now(timezone.utc).date().isoformat()
                     built = orch.digest().execute("build_daily_digest", {
-                        "elder_id": args.elder, "date": today,
+                        "elder_id": args.elder, "date": _today(),
                         "elder_name": args.elder})
                     if built.get("status") == "error":
-                        # skill4 已知 bug：store 里 occurred_at 被序列化成 Z 后缀，
-                        # build_daily_digest 读回时 fromisoformat 在 3.10 上解析不了。
-                        # 编排层的 _json_safe 只覆盖了入站方向，绕不过它内部的往返。
                         msg = (built.get("error") or {}).get("message", "")
-                        print("[skill4] 生成失败 —— 这是 skill4 的已知兼容 bug：")
-                        print(f"          {msg}")
-                        print("          它声明 requires-python >=3.10，但 store 往返用了 "
-                              "3.11 才支持的 Z 后缀时间戳。")
-                        print("          已向 skill4 负责人反馈；record_signals（每轮自动做的）"
-                              "不受影响。")
+                        print(f"[skill4] 生成失败: {msg}")
                         print()
                         continue
-                    print("[skill4] 今日家属卡片：")
-                    print("    " + str(built.get("data") or built)[:600].replace(
-                        "\n", "\n    "))
-                    sent = orch.digest().execute("dispatch_digest", {
-                        "elder_id": args.elder, "date": today})
-                    print(f"[skill4] 推送结果: {sent.get('status')}")
+                    card = built.get("data") or {}
+                    routing = (built.get("meta") or {}).get("routing") or {}
+                    print(f"[skill4] 今日家属卡片  tier={card.get('tier')}"
+                          f"  触发原因={routing.get('reasons')}")
+                    print("    " + (card.get("title") or "").strip())
+                    for s in card.get("sections") or []:
+                        print(f"    [{s['heading']}]")
+                        for line in str(s.get("body") or "").splitlines():
+                            print("      " + line)
+                    # dispatch_digest 要的是 card_id，不是 elder_id/date
+                    cid = card.get("card_id")
+                    if not cid:
+                        print("    （没有卡片可推送）")
+                    else:
+                        sent = orch.digest().execute("dispatch_digest",
+                                                     {"card_id": cid})
+                        print(f"[skill4] 推送结果: {sent.get('status')}")
                 except Exception as exc:  # noqa: BLE001
                     print(f"[skill4] 失败: {exc}")
                 print()

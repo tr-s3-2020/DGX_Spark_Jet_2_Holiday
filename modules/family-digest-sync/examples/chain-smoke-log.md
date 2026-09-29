@@ -1,8 +1,8 @@
 # 四模块串联冒烟日志（A/B/C 真实报文格式 -> D）
 
-- 生成时间：2026-09-28T17:51:51
+- 生成时间：2026-09-28T14:35:01
 - 输入来源：B=团队库 implicit-health-triage 样例；C=API.md 3.8 的 get_chronicle envelope；A=server.py 的 `{"safety": "P0"}` 消息
-- C 状态：ready；叠加 A 的 P0：False；去掉 B 的用药阻断：False
+- C 状态：ready；叠加 A 的 P0：True；去掉 B 的用药阻断：False
 
 ## 调用轨迹
 
@@ -27,6 +27,21 @@
         "accepted": 5,
         "skipped": [],
         "safety": 0
+      },
+      "meta": {
+        "deduped": false
+      },
+      "error": null
+    }
+  },
+  {
+    "op": "record_signals(A)",
+    "result": {
+      "status": "ok",
+      "data": {
+        "accepted": 0,
+        "skipped": [],
+        "safety": 1
       },
       "meta": {
         "deduped": false
@@ -68,7 +83,8 @@
         "routing": {
           "tier": "P0",
           "reasons": [
-            "medication_safety_blocked:MEDICATION_DOSE_INCREASE"
+            "medication_safety_blocked:MEDICATION_DOSE_INCREASE",
+            "voice_safety_p0"
           ],
           "acquisition": "acquired",
           "degraded_suspected": false
@@ -85,7 +101,7 @@
         "card_id": "card:e001:2026-09-28:P0",
         "channel": "mock",
         "status": "sent",
-        "receipt_id": "mock-6d77992d",
+        "receipt_id": "mock-b561fbc5",
         "attempts": 1,
         "reason": ""
       },

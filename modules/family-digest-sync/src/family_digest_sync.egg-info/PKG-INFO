@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: family-digest-sync
+Version: 0.1.0
+Summary: 家属摘要同步技能：按授权与分档，把长者的健康观察与回忆片段同步给家属
+Requires-Python: >=3.10
+Requires-Dist: pydantic>=2
+Provides-Extra: dev
+Requires-Dist: pytest>=7; extra == "dev"

@@ -32,6 +32,7 @@ from .models import (
 from .routing import route
 from .state import CardStateMachine
 from .store import JsonStore
+from .timeutil import normalize_stamp
 
 OPERATIONS = (
     "set_consent",
@@ -72,8 +73,9 @@ def _load_health(rows: Sequence[Dict[str, Any]]) -> List[HealthSignalRecord]:
     out = []
     for r in rows:
         payload = dict(r)
-        if isinstance(payload.get("occurred_at"), str):
-            payload["occurred_at"] = datetime.fromisoformat(payload["occurred_at"])
+        if payload.get("occurred_at") is not None:
+            # 兼容 Z 后缀（3.10 不认）+ 统一本地墙钟，落库后不会再产生 Z
+            payload["occurred_at"] = normalize_stamp(payload["occurred_at"])
         out.append(HealthSignalRecord(**payload))
     return out
 
@@ -82,8 +84,8 @@ def _load_safety(rows: Sequence[Dict[str, Any]]) -> List[SafetyEventRecord]:
     out = []
     for r in rows:
         payload = dict(r)
-        if isinstance(payload.get("occurred_at"), str):
-            payload["occurred_at"] = datetime.fromisoformat(payload["occurred_at"])
+        if payload.get("occurred_at") is not None:
+            payload["occurred_at"] = normalize_stamp(payload["occurred_at"])
         out.append(SafetyEventRecord(**payload))
     return out
 

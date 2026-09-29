@@ -22,6 +22,7 @@ family-digest-sync/
 │   ├── consent.py                 授权校验 + 脱敏
 │   ├── cards.py                   确定性卡片渲染
 │   ├── state.py                   发送状态机（重试 → 死信）
+│   ├── timeutil.py                ★ 时间戳收口（兼容 3.10，统一本地墙钟）
 │   ├── store.py                   JSON 存储（换数据库只改这个文件）
 │   ├── service.py                 统一入口 execute(operation, request)
 │   └── adapters/
@@ -34,14 +35,14 @@ family-digest-sync/
 │   ├── upstream-contracts.md      A/B/C 的字段与坑
 │   └── card-templates.md          文案模板与禁用措辞
 ├── examples/                      四个场景 + 宿主调用留痕 + B 官方样例 + 串联日志
-└── tests/                         54 项
+└── tests/                         68 项（含 3.10 回归）
 ```
 
 ## 安装与运行
 
 ```bash
 pip install -e .
-python -m pytest tests/ -q                                  # 54 项应全过
+python -m pytest tests/ -q                                  # 68 项应全过
 python scripts/digest_cli.py --scenario examples/scenario_p1_trend.json --channel console --reset
 python scripts/host_invoke_demo.py                          # 产出 examples/host-invocation-log.md
 python scripts/chain_smoke.py --with-a-safety               # 产出 examples/chain-smoke-log.md
@@ -77,6 +78,15 @@ B 从"只有文档"变成完整 Python 包，同时带来三处影响 D 的变�
 | 新增 `to_digest_record`，但会丢 `guardrail_triggered` 与 `type=无` 的记录 | 支持其输出作兜底，**推荐消费原始报文**；已在回执中说明 |
 
 详见 `docs/to-b-interface-reply.md`（给 B 的正式回执，含三项待其确认事项）。
+
+## Python 3.10 兼容
+
+本模块声明 `requires-python = ">=3.10"`。曾出现过一个 3.10 上必然报错的 bug：
+pydantic 把 UTC 时间序列化成 `...Z`，而 `fromisoformat` 3.11 才认 `Z`。
+已在 `timeutil.py` 收口修掉，并在**真实 CPython 3.10.21** 上验证 68 项全过。
+CI（`.github/workflows/tests.yml`）在 3.10 / 3.11 / 3.12 / 3.13 四个版本上跑。
+
+详见 `docs/bugfix-datetime-z.md`。
 
 ## 验证过的行为
 

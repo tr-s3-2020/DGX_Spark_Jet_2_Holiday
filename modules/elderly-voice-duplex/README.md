@@ -22,8 +22,10 @@
 | LLM 链路（流式 + 关思考） | ✅ 完成，**首字延迟 109ms**（预算 500ms） |
 | ASR（Paraformer + ct-punc） | ✅ 中文 CER 1.3%，降压药识别正确 |
 | TTS | ✅ edge-tts 中文可用（MagpieTTS 中文有缺陷，见 SDK-CHOICES） |
-| WebSocket 服务 | ✅ 完成 |
-| 真实音频端到端 | ✅ ASR+TTS 均已用真实音频验证；缺麦克风采集端 |
+| WebSocket 服务 | ✅ 完成，二进制音频帧 + 控制帧 |
+| 网页客户端 | ✅ web/index.html，服务端 `/` 直接打开 |
+| 真实音频端到端 | ✅ 音频进 → 识别 → 回复 → 语音出 全通（tests/test_ws_audio.py） |
+| A → D 联调 | ✅ 安全分级喂给 skill4，家属卡片随通话更新（tests/test_family_card.py） |
 
 ## 快速开始
 
@@ -31,13 +33,42 @@
 # 1. 起 LLM（另一个仓库的部署，这里只用它的 HTTP 接口）
 cd ../../ && PROFILE=full bash scripts/serve_v019.sh
 
-# 2. 只验证技能逻辑（不需要音频硬件、不需要 NeMo）
+# 2. 只验证技能逻辑（不需要音频硬件、不需要 FunASR）
 cd modules/elderly-voice-duplex
 python3 skills/elderly_voice_duplex/tests/test_duplex_live.py
 
-# 3. 起 WebSocket 服务
-python3 skills/elderly_voice_duplex/server.py --port 8100
+# 3. 起语音服务（ASR/TTS 用真后端）
+cd skills/elderly_voice_duplex
+EVD_ASR=funasr EVD_TTS=edge python3 server.py --port 8100
+
+# 4. 浏览器打开 http://127.0.0.1:8100/ ，点"接听"授权麦克风即可对话
+#    （getUserMedia 要安全上下文，从服务端打开比 file:// 稳）
+
+# 5. 没有麦克风时的回归测试
+python3 tests/test_ws_audio.py       # 真实音频走完整 WebSocket 链路
+python3 tests/test_ws_protocol.py    # 不起进程、纯假后端，验证协议层
+python3 tests/test_voice_loop.py     # ASR->LLM->TTS 闭环 + TTS 回读校验
+python3 tests/test_family_card.py    # A→D：安全分级进 skill4 卡片
+node    tests/test_web_framing.js    # 网页客户端攒帧/重采样逻辑
 ```
+
+## 家属卡片（A → D）
+
+每收一轮、判出 P0/P1，服务端就用 skill4 自己的 `normalize_a_safety` 把分级转成
+`SafetyEventRecord` 记进去（**不自己拼字段**）。网页上的「家属卡片」区块随通话刷新，
+P0 会标红并可一键推送。skill4 不在时整条链路降级，不影响通话。
+
+两个接口：
+
+```
+GET  /api/card?elder=小明          今日卡片（tier / title / sections / 触发原因）
+POST /api/card/dispatch            {"card_id": "..."}  推送（要 card_id，不是 elder_id）
+```
+
+已知缺口（已报 skill4 负责人，见 `docs/to-d-a2d-findings.md`）：语音侧的 P0 只产生
+safety event，而 skill4 的卡片正文只渲染健康记录，所以标题是通用的、`sources` 为空、
+`acquisition` 误判成"未取得"。页面因此把 `routing.reasons`（如 `voice_safety_p0`）
+显示在卡片底部，避免家属被"今天没有需要特别说明的健康观察"误导。
 
 ## 目录
 
@@ -53,16 +84,26 @@ modules/elderly-voice-duplex/
         ├── config.py              所有可调参数（VAD 阈值、延迟预算、音色…）
         ├── prompts.py             在想词判定、垫音生成、医疗安全围栏
         ├── duplex.py              全双工状态机 LISTENING/THINKING/SPEAKING/BARGED_IN
-        ├── server.py              WebSocket 服务
+        ├── family_card.py         A→D 薄适配：安全分级进 skill4 + 建卡/推送
+        ├── server.py              WebSocket 服务 + 网页客户端静态托管 + 卡片接口
+        ├── web/
+        │   └── index.html         网页客户端：采音、放音、接听/挂断
         ├── adapters/
         │   ├── base.py            VAD/ASR/TTS/LLM 接口
         │   ├── text.py            文本假后端（无硬件也能单测）
         │   ├── llm_vllm.py        打到本地 Qwen3.6 的流式客户端
-        │   ├── nemo_asr.py        NVIDIA Nemotron 流式 ASR（待接）
-        │   ├── nemo_tts.py        NVIDIA MagpieTTS（待接）
+        │   ├── funasr_asr.py      Paraformer 中文 ASR（离线 + VAD 切段）
+        │   ├── edge_tts_tts.py    edge-tts 中文合成
+        │   ├── nemo_asr.py        NVIDIA Nemotron 流式 ASR（中文不可用，见 SDK-CHOICES）
+        │   ├── nemo_tts.py        NVIDIA MagpieTTS（中文有缺陷，见 SDK-CHOICES）
         │   └── silero_vad.py      silero-vad（待接）
         └── tests/
-            └── test_duplex_live.py  对真模型的端到端验证
+            ├── test_duplex_live.py   对真模型的技能逻辑端到端验证
+            ├── test_ws_audio.py      真实音频走完整 WebSocket 链路
+            ├── test_ws_protocol.py   协议层回归（不起进程）
+            ├── test_voice_loop.py    ASR->LLM->TTS 闭环 + TTS 回读校验
+            ├── test_family_card.py   A→D：安全分级进 skill4 卡片
+            └── test_web_framing.js   网页客户端攒帧/重采样回归
 ```
 
 ## 关键设计决策（详见 docs/）
