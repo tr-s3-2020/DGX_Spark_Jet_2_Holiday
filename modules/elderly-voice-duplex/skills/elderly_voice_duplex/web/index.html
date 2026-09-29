@@ -110,6 +110,7 @@
   .tier.p1 { background: var(--accent-soft); }
   .tier.p2 { background: rgba(127,127,127,.18); color: var(--muted); }
   .card-title { margin: 8px 0 10px; font-size: 14px; line-height: 1.5; }
+  .card-scope { margin: 0; font-size: 11.5px; color: var(--muted); }
   .card-body { font-size: 13px; line-height: 1.6; }
   .card-body section { margin-bottom: 10px; }
   .card-body h3 { font-size: 12.5px; color: var(--muted); margin: 0 0 3px;
@@ -169,6 +170,7 @@
       <h2>家属卡片</h2>
       <span class="tier" id="cardTier">-</span>
     </header>
+    <p class="card-scope" id="cardScope">今日累计 · 跨本次通话的所有通话</p>
     <p class="card-title" id="cardTitle">今天还没有需要留意的信号</p>
     <div class="card-body" id="cardBody"></div>
     <footer class="card-foot">
@@ -512,6 +514,15 @@
     if (reasons.length) {
       cardEl.title = "触发原因 " + reasons.join("、");
       console.debug("[family-card] reasons:", reasons);
+    }
+    // 卡片是「今日累计」的日报，跨通话汇总。刚接通就看到的 P0 很可能是今天
+    // 早先说的一句话触发的——不显示时间，用户就会以为"我什么都没说它就
+    // 说有风险"。这里把今天每条安全信号的时间列出来（不带原文，skill4
+    // 明确不把原文放进卡片）。
+    const signals = res.signals || [];
+    if (signals.length) {
+      bits.push("今日 " + signals.length + " 条："
+                + signals.map(s => s.time + " " + s.level).join("、"));
     }
     if (card.sources && card.sources.length) bits.push("来源 " + card.sources.join("、"));
     if (card.redacted) bits.push("已脱敏");

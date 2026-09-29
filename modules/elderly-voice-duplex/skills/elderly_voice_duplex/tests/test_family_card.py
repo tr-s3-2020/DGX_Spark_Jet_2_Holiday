@@ -90,6 +90,23 @@ async def main() -> int:
                         str(sent.get("reason")))
         ok &= check("空 card_id 不会抛异常",
                     family_card.dispatch_card("").get("ok") is False)
+
+        # 今日信号时间线：卡片是「今日累计」的日报，跨通话汇总。刚接通就
+        # 看到的 P0 可能是今天早先那句话触发的——不显示时间，用户就会以为
+        # "我什么都没说它就说有风险"。
+        sigs = after.get("signals") or []
+        ok &= check("返回今日信号时间线", len(sigs) >= 1,
+                    str(sigs))
+        ok &= check("时间线按时间排序",
+                    [s["time"] for s in sigs] == sorted(s["time"] for s in sigs),
+                    str(sigs))
+        # 不带原文：skill4 明确不把 text 放进卡片，这里也不该绕过
+        ok &= check("时间线里没有老人原话",
+                    all("text" not in s for s in sigs),
+                    str(sigs))
+        ok &= check("时间线能溯源到 session:turn",
+                    all(s.get("session") and s.get("turn") for s in sigs),
+                    str(sigs))
     finally:
         family_card.STATE_DIR = os.path.join(
             os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..",

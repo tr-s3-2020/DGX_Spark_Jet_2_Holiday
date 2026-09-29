@@ -101,6 +101,44 @@ def record_safety(elder_id: str, session_id: str, turn_id: str,
         return False
 
 
+def _today_signals(svc, elder_id: str) -> list[dict]:
+    """今天的安全信号，只带时间和分级，**不带原文**。
+
+    为什么要这个：卡片是「今日累计」的日报，跨通话汇总。刚接通就看到的 P0
+    可能是早上那句话触发的——页面上不显示时间，用户就会以为"我什么都没说
+    它就说有风险"。带上时间才能把两者联系起来。
+
+    不带 text：skill4 明确不把原文放进卡片（见她的 to-a-card-fix.md），
+    这里也不该绕过这个决定。时间和 session/turn 足够溯源。
+    """
+    try:
+        today = datetime.now(timezone.utc).date()
+        out = []
+        for raw in svc.store.safety_records():
+            if raw.get("elder_id") != elder_id:
+                continue
+            stamp = raw.get("occurred_at")
+            if not stamp:
+                continue
+            try:
+                when = datetime.fromisoformat(
+                    str(stamp).replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if when.date() != today:
+                continue
+            out.append({"time": when.astimezone().strftime("%H:%M"),
+                        "level": str(raw.get("safety_level") or ""),
+                        "session": str(raw.get("session_id") or ""),
+                        "turn": str(raw.get("turn_id") or "")})
+        out.sort(key=lambda s: s["time"])
+        return out
+    except Exception as exc:  # noqa: BLE001  溯源信息拿不到不影响卡片本身
+        log.info("读取今日信号失败（不影响卡片）: %s: %s",
+                 type(exc).__name__, exc)
+        return []
+
+
 def build_card(elder_id: str, elder_name: str = "老人") -> dict:
     """生成今日卡片。返回 {"ok":bool, "card":dict|None, "reason":str}。"""
     svc = _service()
@@ -119,13 +157,15 @@ def build_card(elder_id: str, elder_name: str = "老人") -> dict:
             return {"ok": False,
                     "reason": (out.get("error") or {}).get("message", "")}
         card = out.get("data")
+        signals = _today_signals(svc, elder_id)
         if not card:
             # ignored：今天没有任何信号。给一张空的 P2 卡，页面才好展示
             return {"ok": True, "card": None,
                     "reason": (out.get("meta") or {}).get("reason", "ignored"),
-                    "routing": out.get("meta")}
+                    "routing": out.get("meta"), "signals": signals}
         return {"ok": True, "card": card,
-                "routing": (out.get("meta") or {}).get("routing")}
+                "routing": (out.get("meta") or {}).get("routing"),
+                "signals": signals}
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "reason": f"{type(exc).__name__}: {exc}"}
 
