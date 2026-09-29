@@ -92,9 +92,13 @@ async def health():
 
 
 @app.get("/api/card")
-async def api_card(elder: str = "老人"):
-    """今日家属卡片。skill4 不在时返回 ok=False，页面显示"暂无"。"""
-    return family_card.build_card("default", elder)
+async def api_card(elder: str = "老人", elder_id: str = "default"):
+    """今日家属卡片。skill4 不在时返回 ok=False，页面显示"暂无"。
+
+    elder_id 是 skill4 存储里的命名空间。默认 "default" 给页面用；
+    探针/测试传别的值，否则会把测试数据写进家属真正看的那份日报里。
+    """
+    return family_card.build_card(elder_id, elder)
 
 
 @app.post("/api/card/dispatch")
@@ -129,6 +133,8 @@ async def voice(ws: WebSocket):
     seen_types: list[str] = []
     # 这次通话的标识，喂给 skill4 做去重键
     session_id = uuid.uuid4().hex[:12]
+    # skill4 日报的命名空间，start 消息可以覆盖
+    elder_id = "default"
 
     async def send(obj: dict):
         await ws.send_text(json.dumps(obj, ensure_ascii=False))
@@ -170,6 +176,10 @@ async def voice(ws: WebSocket):
             kind = ctrl.get("type")
 
             if kind == "start":
+                # elder_id 是 skill4 日报存储里的命名空间。默认 "default" 给
+                # 页面用；测试/探针传别的值，否则会把测试数据写进家属真正
+                # 看的那份日报里——表现就是"刚进去一句话没说就显示 P0"。
+                elder_id = str(ctrl.get("elder_id") or "default")
                 duplex = VoiceDuplex(
                     vad=adapters.make_vad(), asr=adapters.make_asr(),
                     tts=adapters.make_tts(), llm=adapters.make_llm(),
@@ -180,7 +190,8 @@ async def voice(ws: WebSocket):
                 # 带了开场白时 start() 返回后状态已经是 SPEAKING，
                 # 补发一条 LISTENING 会让客户端以为我们没在说话。
                 await duplex.flush_state()
-                log.info("通话开始 kin=%s", ctrl.get("kin"))
+                log.info("通话开始 kin=%s elder_id=%s",
+                         ctrl.get("kin"), elder_id)
 
             elif kind == "audio" and duplex is not None:
                 # 能量以服务端自己算的为准，客户端的只当兜底（见 pcm_energy）
@@ -213,7 +224,7 @@ async def voice(ws: WebSocket):
                     # 导入都不该让老人等。失败只记日志，不影响这轮回复。
                     if result.safety_level:
                         asyncio.get_running_loop().run_in_executor(
-                            None, family_card.record_safety, "default",
+                            None, family_card.record_safety, elder_id,
                             session_id, f"T{stats['turns']}",
                             result.safety_level, result.transcript)
                     # 老人说的话也要回显：原来协议里只有 partial（离线 ASR
