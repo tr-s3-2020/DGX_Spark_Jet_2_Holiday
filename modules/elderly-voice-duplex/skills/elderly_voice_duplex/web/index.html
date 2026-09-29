@@ -241,9 +241,12 @@
   }
 
   // ------------------------------------------------------- 播放 AI 的语音
-  // 服务端推回的是 PCM16 16kHz 单声道裸流，切成 16 样本对齐的缓冲播。
+  // 服务端是**整句一次性**推回 PCM（edge-tts 合成完整句才返回），所以必须
+  // 自己记账：打断时要能把已经排上、还没播的那部分也停掉，否则老人
+  // "明明插话了还是听到整句"。src.start() 排在未来时刻的播放也要能撤销。
   let playQueue = [];
   let playTime = 0;
+  let liveSources = [];
 
   function pcmToAudioBuffer(pcmBytes) {
     const n = pcmBytes.byteLength / 2;
@@ -265,6 +268,19 @@
     const start = Math.max(now, playTime);
     src.start(start);
     playTime = start + buf.duration;
+    liveSources.push(src);
+    // 播完自己从账上划掉，别无限增长
+    src.onended = () => {
+      liveSources = liveSources.filter(s => s !== src);
+    };
+  }
+
+  /** 立刻停嘴：停掉正在播的、撤销排在未来时刻的、清空待播。 */
+  function stopPlayback() {
+    liveSources.forEach(s => { try { s.stop(); } catch (e) {} });
+    liveSources = [];
+    playQueue = [];
+    playTime = 0;
   }
 
   // ------------------------------------------------------------- 采音推流
@@ -437,7 +453,7 @@
     processor = sourceNode = micStream = null;
     micRemainder = new Float32Array(0);   // 别把半帧留给下一通电话
     if (audioCtx) { audioCtx.close(); audioCtx = null; }
-    playQueue = []; playTime = 0;
+    stopPlayback();
   }
 
   // ------------------------------------------------------- 家属卡片（skill4）
@@ -545,7 +561,12 @@
       if (typeof ev.data !== "string") { playPcm(ev.data); return; }
       const msg = JSON.parse(ev.data);
       switch (msg.type) {
-        case "state":     setState(msg.state); break;
+        case "state":
+          setState(msg.state);
+          // 打断信号：服务端推回的是一整句 PCM，等音频到了才停就晚了，
+          // 所以这里必须立刻把已排队/正在播的全部划掉。
+          if (msg.state === "BARGED_IN") stopPlayback();
+          break;
         case "transcript": addTurn("elder", msg.text); break;
         case "judge":     addNote("（在想词）"); break;
         case "filler":    addTurn("ai", msg.text); break;

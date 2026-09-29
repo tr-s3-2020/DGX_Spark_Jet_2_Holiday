@@ -106,6 +106,41 @@ function decodedOk(blob) {
   return true;
 }
 
+// ---------------------------------------------------------------- 播放侧
+// 打断时客户端必须能把已经排上、还没播的音频停掉。服务端是整句一次性推回
+// PCM，播放早就上了客户端的队列，服务端取消合成停不到它——这一环漏了，
+// 症状就是"插话了还是听到整句"。
+function makePlayer() {
+  const started = [], stopped = [];
+  const audioCtx = {
+    currentTime: 0,
+    createBuffer(ch, n) {
+      return { duration: n / 16000, length: n,
+               getChannelData() { return new Float32Array(n); } };
+    },
+    createBufferSource() {
+      const s = { buffer: null, started: false, stopped: false,
+                  connect() {}, start() { s.started = true; },
+                  stop() { s.stopped = true; stopped.push(s); },
+                  onended: null };
+      started.push(s);
+      return s;
+    },
+  };
+  const src = [
+    "let playQueue = [];",
+    "let playTime = 0;",
+    "let liveSources = [];",
+    extract("pcmToAudioBuffer"),
+    extract("playPcm"),
+    extract("stopPlayback"),
+    "return { playPcm, stopPlayback, playTime: () => playTime,",
+    "         live: () => liveSources };",
+  ].join("\n");
+  const api = new Function("audioCtx", "SAMPLE_RATE", src)(audioCtx, 16000);
+  return { api, started, stopped };
+}
+
 function main() {
   let ok = true;
   console.log("[web-framing] 攒帧逻辑");
@@ -233,6 +268,32 @@ function main() {
   ok &= check("较轻的正常说话也能越过阈值",
               quiet >= VAD_THRESHOLD,
               "能量 " + quiet.toFixed(3) + " 低于阈值 " + VAD_THRESHOLD);
+
+  // ---- 播放侧：打断要能停掉已排队的音频 ----
+  const player = makePlayer();
+  const blob = new ArrayBuffer(32000);        // 1s @ 16kHz PCM16
+  player.api.playPcm(blob);
+  player.api.playPcm(blob);
+  player.api.playPcm(blob);
+  ok &= check("三段音频都排上了播放",
+              player.started.length === 3 && player.started.every(s => s.started),
+              "排上 " + player.started.length + " 段");
+  ok &= check("排队是串行的（不互相覆盖）",
+              Math.abs(player.api.playTime() - 3.0) < 1e-6,
+              "playTime=" + player.api.playTime());
+
+  player.api.stopPlayback();
+  ok &= check("打断时全部播放被叫停",
+              player.stopped.length === 3,
+              "叫停 " + player.stopped.length + " 段");
+  ok &= check("打断后播放时钟归零", player.api.playTime() === 0,
+              "playTime=" + player.api.playTime());
+  ok &= check("打断后待播队列清空", player.api.live().length === 0);
+
+  // 叫停之后再来的音频要能正常播（不能把播放器搞坏）
+  player.api.playPcm(blob);
+  ok &= check("打断后还能继续播新音频",
+              player.started.length === 4 && player.api.playTime() > 0);
 
   console.log("[web-framing] " + (ok ? "PASS" : "FAIL"));
   return ok ? 0 : 1;

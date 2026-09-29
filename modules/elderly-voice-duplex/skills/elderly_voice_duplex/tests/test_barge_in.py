@@ -44,7 +44,7 @@ class SlowTTS(RecordingTTS):
     靠的是**取消任务**——这里也一样验那条路径。
     """
 
-    BLOB = b"\x7f\x00" * 800          # 50ms @ 16kHz PCM16
+    BLOB = b"\x7f\x00" * 16000        # 1s @ 16kHz PCM16
 
     def __init__(self, seconds: float = 3.0):
         super().__init__()
@@ -141,7 +141,7 @@ async def main() -> int:
     await d2.feed_audio(b"\x00" * FRAME, QUIET)
     r2 = await d2.feed_audio(b"\x00" * FRAME, QUIET)
     ok &= check("不插话时也能拿到回复", r2 is not None and bool(r2.reply))
-    await asyncio.sleep(0.5)                  # 等它自己说完
+    await asyncio.sleep(1.6)                  # 等它真的播完（1s 音频）
     ok &= check("说完整句后自动回 LISTENING",
                 d2.state is DuplexState.LISTENING, d2.state.name)
     ok &= check("没被打断的回复正常推给客户端", pushed2 == ["那挺好呀"],
@@ -198,6 +198,35 @@ async def main() -> int:
     await asyncio.sleep(0.2)
     ok &= check("安全分支被打断后也没推音频", pushed4 == [], repr(pushed4))
     await d4.close()
+
+    # ---- 场景五：播放到一半才插话 ----
+    # 音频是整句一次性推给上层的，合成结束不等于说完。原来 _play 推完就回
+    # LISTENING，服务端于是"以为说完了、其实客户端还要播十几秒"，那期间
+    # 插话会被当成新一轮发言，打断检测完全覆盖不到。
+    # 现在按音频播放时长占住 SPEAKING，打断窗口才和真实播放窗口重合。
+    tts5 = SlowTTS(seconds=0.1)
+    pushed5: list[str] = []
+    d5 = build(tts5, pushed5)
+    await d5.start()
+    await d5.feed_audio(b"\x00" * FRAME, LOUD)
+    await d5.feed_audio(b"\x00" * FRAME, QUIET)
+    r5 = await d5.feed_audio(b"\x00" * FRAME, QUIET)
+    ok &= check("第五轮也拿到回复", r5 is not None and bool(r5.reply))
+    # 等合成结束、音频已经推给上层，但还没播完
+    await asyncio.sleep(0.15)
+    ok &= check("音频已推给上层后仍在 SPEAKING",
+                d5.state is DuplexState.SPEAKING, d5.state.name)
+    got5 = None
+    for _ in range(8):
+        r_in = await d5.feed_audio(b"\x00" * FRAME, LOUD)
+        if r_in is not None:
+            got5 = r_in
+            break
+        await asyncio.sleep(0.03)
+    ok &= check("播放到一半插话也能被打断",
+                got5 is not None and "barge_in" in got5.events,
+                repr(got5 and got5.events))
+    await d5.close()
 
     print("[barge-in] " + ("PASS" if ok else "FAIL"))
     return 0 if ok else 1

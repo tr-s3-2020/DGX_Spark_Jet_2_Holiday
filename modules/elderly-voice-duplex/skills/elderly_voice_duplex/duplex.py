@@ -320,6 +320,11 @@ class VoiceDuplex:
             # 被插话打断时这一段已经作废，不要推给客户端
             if audio and self.on_audio is not None and not self._cancel_speech:
                 await self.on_audio(text, audio)
+                # 音频是**整句一次性**推过去的：合成结束不等于说完。不按播放
+                # 时长占住 SPEAKING，服务端会立刻回 LISTENING，而客户端还要
+                # 播剩下的十几秒——那期间老人插话会被当成新一轮发言，打断检测
+                # 根本覆盖不到。这段时间也正好是 barge-in 真正发生的窗口。
+                await self._hold_while_playing(audio)
         except asyncio.CancelledError:
             raise                          # 被打断：正常路径，别吞
         except Exception as exc:  # noqa: BLE001  合成失败不能让通话断掉
@@ -333,6 +338,12 @@ class VoiceDuplex:
                 self._enter(DuplexState.LISTENING)
             self._tts_task = None
 
+    async def _hold_while_playing(self, audio: bytes) -> None:
+        """按音频播放时长占住 SPEAKING。被打断时由取消提前结束。"""
+        seconds = len(audio) / 2 / max(config.SAMPLE_RATE, 1)
+        if seconds > 0:
+            await asyncio.sleep(seconds)
+
     async def _barge_in(self) -> TurnResult:
         """老人插话：立刻停嘴，已说出口的部分作废。"""
         result = TurnResult(state=self.state, transcript=self._partial)
@@ -342,6 +353,10 @@ class VoiceDuplex:
         await self._stop_playback()
         self._silence_since = None
         result.events.append("barge_in")
+        # BARGED_IN 是给客户端的明确信号：收到就停掉正在排队的播放。
+        # 服务端推回的是一整句 PCM，播放早就上了客户端的队列，服务端这边
+        # 取消合成停不到它——必须客户端自己划掉。
+        self._enter(DuplexState.BARGED_IN, result)
         self._enter(DuplexState.LISTENING, result)
         return result
 
