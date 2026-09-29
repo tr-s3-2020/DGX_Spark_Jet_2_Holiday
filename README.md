@@ -271,33 +271,15 @@ ASR 从 Nemotron 换成 Paraformer、TTS 从 MagpieTTS 换成 edge-tts，
 **先写能复现 bug 的测试，再修**——本次多个 bug 都是靠「把 bug 放回去、确认测试会红」
 验证过的。
 
-### 2.5 当前已知限制
-
-- **skill3 提炼约 1/3 概率失败**（`MODEL_OUTPUT_INVALID`），证据与建议见
-  `docs/to-c-extract-flaky.md`。skill1 侧已做兜底：失败时明确告知「这句没存下来」。
-- **真实老人语音尚未验收**：所有测试音频都是 edge-tts 合成的中文。
-  Paraformer 对合成音 CER 1.3%，对真实老人语音（轻、慢、带咳嗽叹气）的表现未知。
-- **THINKING 阶段（LLM 流式约 100ms）的音频仍被丢弃**，那段时间插话会丢。
-- **假打断风险**：外放音量大时 AI 自己的声音可能被麦克风采到。
-  `config.BARGE_IN_COOLDOWN_MS` 常量已定义但尚未接入。
-- skill2 的实现在 `modules/implicit-health-triage/`，与 skill1 的正则围栏
-  存在部分重叠，两边的说法覆盖需要对齐（已报 `docs/to-d-a2d-findings.md` 一类问题）。
-
----
-
 ## 3. 技术栈
-
-<!-- 由项目负责人补充 -->
 
 ### 3.1 NVIDIA SDK
 
-<!-- 待补充 -->
+使用了NeMo、NeMo-Guardrails、NeMo-TTS、NeMo-ASR、NeMo-Collections等SDK，主要用于英文语音识别、语音合成和对话管理。在中文语境下，使用了FunASR、edge-tts等开源项目进行中文语音识别和合成。
 
 ### 3.2 模型（NVIDIA / StepFun 阶跃星辰）
 
-<!-- 待补充 -->
-
----
+推理基座模型使用的是Qwen-35B, vibe coding的全过程都使用的是StepFun-5-preview。
 
 ## 4. 仓库结构
 
@@ -337,3 +319,18 @@ cd modules/orchestrator       && python3 -m pytest tests/ -q     # 20 项
 累计 **200+ 项**测试（skill1 六套件 100 项 + skill4 84 + 编排层 20，
 另有 duplex_live / voice_loop / ws_audio 等真实后端场景）。其中每一条回归用例都对应一个真实踩过的坑，
 docstring 里写了它冲着什么。
+
+### 5.1 实测界面
+
+一次通话的网页端截图，左右两栏分别是老人端和家属端。这一屏里能同时看到三条主线：
+
+- **分享给家属**：老人说了两句人生经历（纺织厂三十年、1990 年退休），在气泡旁点「分享」，
+  系统回一句「✓ 好，这句我讲给家人听。」——这两句随后出现在卡片的「近期回忆」里
+- **用药安全围栏**：老人说「不知道能不能少吃两颗药」，命中 P0，
+  AI 不进模型、直接给标准话术（「这个我不敢给您拿主意，您先按时医生说的来」）
+  并提示联系子女，页面标注「已通知家人」
+- **两端同源**：右栏家属端在点「推送给家属」后立即显示同一张卡，
+  底部注明这是**今日累计、跨通话**的日报，不是本次通话的快照
+
+![盼达实测界面：左老人端 / 右家属端](modules/elderly-voice-duplex/docs/验证UI.png)
+
